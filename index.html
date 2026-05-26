@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบประเมินพนักงาน</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Login Page -->
+        <div id="login-page" class="page active">
+            <div class="login-container">
+                <div class="login-header">
+                    <div class="logo">📊</div>
+                    <h1>ระบบประเมินพนักงาน</h1>
+                    <p>Employee Performance Evaluation System</p>
+                </div>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="username">ชื่อผู้ใช้ / รหัสพนักงาน</label>
+                        <input type="text" id="username" placeholder="admin, MGR001, EMP001" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">รหัสผ่าน</label>
+                        <input type="password" id="password" placeholder="กรอกรหัสผ่าน" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">เข้าสู่ระบบ</button>
+                    <div class="login-hint">
+                        <strong>ทดสอบเข้าสู่ระบบ:</strong><br>
+                        Admin: <code>admin</code> / <code>1234</code><br>
+                        MD: <code>md</code> / <code>1234</code><br>
+                        หัวหน้าแผนก: <code>MGR001</code> / <code>1234</code><br>
+                        พนักงาน: <code>EMP001</code> / <code>1234</code>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Main App -->
+        <div id="main-app" class="page">
+            <nav class="navbar">
+                <div class="nav-brand">
+                    <span class="nav-logo">📊</span>
+                    <span>ระบบประเมินพนักงาน</span>
+                </div>
+                <div class="nav-links" id="nav-links"></div>
+                <div class="nav-user">
+                    <span id="nav-username"></span>
+                    <span id="nav-role" class="nav-role-badge"></span>
+                    <button id="logout-btn" class="btn btn-sm">ออกจากระบบ</button>
+                </div>
+            </nav>
+
+            <!-- All sections rendered dynamically -->
+            <div id="main-content"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

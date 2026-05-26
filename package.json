@@ -1,0 +1,12 @@
+{
+  "name": "employee-evaluation-system",
+  "version": "1.0.0",
+  "description": "ระบบประเมินพนักงาน",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "json-server": "0.17.4"
+  }
+}
