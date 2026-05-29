@@ -182,7 +182,8 @@ var App = {
                 { page: 'admin-dashboard', label: 'แดชบอร์ด' },
                 { page: 'admin-users', label: 'จัดการผู้ใช้' },
                 { page: 'admin-questions', label: 'จัดการคำถาม' },
-                { page: 'admin-grading', label: 'ตั้งค่าเกรด' }
+                { page: 'admin-grading', label: 'ตั้งค่าเกรด' },
+                { page: 'admin-summary', label: 'สรุปผลประเมิน' }
             ];
         } else if (role === 'md') {
             links = [
@@ -236,6 +237,7 @@ var App = {
             case 'admin-users': content.innerHTML = this.renderMdUsers(); this.bindMdUsers(); break;
             case 'admin-questions': content.innerHTML = this.renderMdQuestions(); this.bindMdQuestions(); break;
             case 'admin-grading': content.innerHTML = this.renderAdminGrading(); this.bindMdGrading(); break;
+            case 'admin-summary': content.innerHTML = this.renderAdminSummary(); break;
             case 'md-dashboard': content.innerHTML = this.renderMdDashboard(); break;
             case 'md-approve': content.innerHTML = this.renderMdApprove(); this.bindMdApprove(); break;
             case 'md-results': content.innerHTML = this.renderMdResults(); break;
@@ -288,6 +290,72 @@ var App = {
             '<div class="form-group"><label>สูงสุด</label><input type="number" id="gr-max" step="0.01" min="0" max="5" required></div>' +
             '<div class="form-group"><label>สี</label><input type="color" id="gr-color" value="#3f51b5"></div>' +
             '</div><button type="submit" class="btn btn-primary">เพิ่ม</button></form></div>';
+        html += '</div></div>';
+        return html;
+    },
+
+    // ==================== Admin: Summary (approved results from MD) ====================
+    renderAdminSummary: function() {
+        var approved = Store.evaluations.filter(function(e){return e.status==='approved';});
+        var html = '<div class="section active"><div class="container"><h2 class="section-title">📊 สรุปผลประเมิน (อนุมัติแล้ว)</h2>';
+        html += '<p class="section-desc">ผลประเมินที่ MD อนุมัติแล้ว — สรุปคะแนนและเกรดของพนักงานแต่ละคน</p>';
+
+        if (approved.length === 0) {
+            html += '<p class="empty-state">ยังไม่มีผลที่ MD อนุมัติ</p>';
+        } else {
+            // Summary table
+            html += '<div class="grading-section"><h3>ตารางสรุปเกรด</h3>';
+            html += '<table class="data-table"><thead><tr><th>รหัส</th><th>ชื่อ</th><th>แผนก</th><th>ตำแหน่ง</th><th>คะแนนเฉลี่ย</th><th>เกรด</th><th>ระดับ</th><th>จำนวนข้อ</th></tr></thead><tbody>';
+            var grouped = {};
+            approved.forEach(function(e){if(!grouped[e.employeeId])grouped[e.employeeId]=[];grouped[e.employeeId].push(e);});
+
+            Object.keys(grouped).forEach(function(empId) {
+                var emp = Store.users.find(function(u){return u.id===empId;});
+                var evals = grouped[empId];
+                var ratings = evals.filter(function(e){return e.type==='rating';});
+                var avg = ratings.length>0 ? ratings.reduce(function(s,e){return s+e.score;},0)/ratings.length : null;
+                var g = Store.getGrade(avg);
+                html += '<tr>';
+                html += '<td>'+(emp?emp.id:empId)+'</td>';
+                html += '<td><strong>'+(emp?emp.name:empId)+'</strong></td>';
+                html += '<td>'+(emp?emp.department||'-':'-')+'</td>';
+                html += '<td>'+(emp?emp.position||'-':'-')+'</td>';
+                html += '<td>'+(avg!==null?avg.toFixed(2):'-')+'</td>';
+                html += '<td><span class="grade-badge-sm" style="background:'+g.color+'">'+g.grade+'</span></td>';
+                html += '<td>'+g.label+'</td>';
+                html += '<td>'+evals.length+'</td>';
+                html += '</tr>';
+            });
+            html += '</tbody></table></div>';
+
+            // Detail cards
+            html += '<h3 style="margin-top:2rem;color:#1a237e;">รายละเอียดแต่ละคน</h3>';
+            html += '<div class="results-grid">';
+            Object.keys(grouped).forEach(function(empId) {
+                var emp = Store.users.find(function(u){return u.id===empId;});
+                var evals = grouped[empId];
+                var ratings = evals.filter(function(e){return e.type==='rating';});
+                var avg = ratings.length>0 ? ratings.reduce(function(s,e){return s+e.score;},0)/ratings.length : null;
+                var g = Store.getGrade(avg);
+
+                html += '<div class="result-card">';
+                html += '<div class="result-card-header"><div><h4>'+(emp?emp.name:empId)+'</h4><small>'+(emp?(emp.department+' - '+(emp.position||'')):'')+'</small></div>';
+                html += '<div class="score-grade-box"><div class="score">'+(avg!==null?avg.toFixed(1):'-')+'</div><div class="grade-badge" style="background:'+g.color+'">'+g.grade+'</div></div></div>';
+                if (avg!==null) {
+                    var pct=(avg/5)*100;
+                    html += '<div class="score-bar"><div class="score-bar-fill" style="width:'+pct+'%;background:'+g.color+'"></div></div>';
+                    html += '<p class="grade-label" style="color:'+g.color+'">'+g.label+'</p>';
+                }
+                html += '<div class="result-answers">';
+                evals.forEach(function(ev) {
+                    var q = Store.questions.find(function(q){return q.id===ev.questionId;});
+                    var ans = ev.type==='rating' ? '<span class="badge badge-evaluated">'+ev.score+'/5</span>' : '<em>'+(ev.answer||'-')+'</em>';
+                    html += '<div class="result-answer-item"><span class="q-label">'+(q?q.text:'ลบแล้ว')+'</span>'+ans+'</div>';
+                });
+                html += '</div></div>';
+            });
+            html += '</div>';
+        }
         html += '</div></div>';
         return html;
     },
@@ -631,7 +699,7 @@ var App = {
     renderMdApprove: function() {
         var pending = Store.evaluations.filter(function(e){return e.status==='reviewed';});
         var html = '<div class="section active"><div class="container"><h2 class="section-title">📋 อนุมัติผลประเมิน</h2>';
-        html += '<p class="section-desc">รายการที่หัวหน้าแผนกตรวจสอบแล้ว รอ MD อนุมัติ</p>';
+        html += '<p class="section-desc">ตรวจสอบ/แก้ไขคะแนน แล้วอนุมัติหรือส่งกลับ</p>';
         if (pending.length === 0) {
             html += '<p class="empty-state">ไม่มีรายการรออนุมัติ</p>';
         } else {
@@ -645,16 +713,31 @@ var App = {
                 var avg = ratings.length>0 ? ratings.reduce(function(s,e){return s+e.score;},0)/ratings.length : null;
                 var g = Store.getGrade(avg);
                 html += '<div class="result-card"><div class="result-card-header"><div><h4>'+(emp?emp.name:empId)+'</h4><small>'+(emp?emp.department:'')+'</small></div>';
-                html += '<div class="score-grade-box"><div class="score">'+(avg!==null?avg.toFixed(1):'-')+'</div><div class="grade-badge" style="background:'+g.color+'">'+g.grade+'</div></div></div>';
+                html += '<div class="score-grade-box"><div class="score md-score" data-emp="'+empId+'">'+(avg!==null?avg.toFixed(1):'-')+'</div><div class="grade-badge" style="background:'+g.color+'">'+g.grade+'</div></div></div>';
+
+                // Editable answers
                 html += '<div class="result-answers">';
                 evals.forEach(function(ev) {
                     var q = Store.questions.find(function(q){return q.id===ev.questionId;});
-                    var ans = ev.type==='rating' ? '<span class="badge badge-evaluated">'+ev.score+'/5</span>' : '<em>'+ev.answer+'</em>';
-                    html += '<div class="result-answer-item"><span class="q-label">'+(q?q.text:'ลบแล้ว')+'</span>'+ans+'</div>';
+                    var qText = q ? q.text : 'ลบแล้ว';
+                    html += '<div class="result-answer-item editable-item">';
+                    html += '<span class="q-label">'+qText+'</span>';
+                    if (ev.type === 'rating') {
+                        html += '<select class="edit-score-select md-edit" data-eval-id="'+ev.id+'" data-emp="'+empId+'">';
+                        for (var s=5; s>=1; s--) {
+                            var labels = {5:'ดีเยี่ยม',4:'ดี',3:'ปานกลาง',2:'ต้องปรับปรุง',1:'ไม่ผ่าน'};
+                            html += '<option value="'+s+'"'+(ev.score===s?' selected':'')+'>'+s+' - '+labels[s]+'</option>';
+                        }
+                        html += '</select>';
+                    } else {
+                        html += '<input type="text" class="edit-answer-input md-edit" data-eval-id="'+ev.id+'" data-emp="'+empId+'" value="'+(ev.answer||'').replace(/"/g,'&quot;')+'">';
+                    }
+                    html += '</div>';
                 });
                 html += '</div>';
+
                 if (evals[0].managerComment) html += '<p class="mgr-comment"><strong>ความเห็นหัวหน้า:</strong> '+evals[0].managerComment+'</p>';
-                html += '<div class="form-actions"><button class="btn btn-success approve-btn" data-emp="'+empId+'">✅ อนุมัติ</button><button class="btn btn-danger reject-btn" data-emp="'+empId+'">❌ ส่งกลับ</button></div></div>';
+                html += '<div class="form-actions"><button class="btn btn-primary md-save-btn" data-emp="'+empId+'">💾 บันทึกแก้ไข</button><button class="btn btn-success approve-btn" data-emp="'+empId+'">✅ อนุมัติ</button><button class="btn btn-danger reject-btn" data-emp="'+empId+'">❌ ส่งกลับ</button></div></div>';
             });
         }
         html += '</div></div>';
@@ -662,12 +745,38 @@ var App = {
     },
 
     bindMdApprove: function() {
+        document.querySelectorAll('.md-save-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() { App.mdSaveScores(btn.dataset.emp); });
+        });
         document.querySelectorAll('.approve-btn').forEach(function(btn) {
-            btn.addEventListener('click', function() { App.approveEmployee(btn.dataset.emp); });
+            btn.addEventListener('click', function() {
+                App.mdSaveScores(btn.dataset.emp);
+                App.approveEmployee(btn.dataset.emp);
+            });
         });
         document.querySelectorAll('.reject-btn').forEach(function(btn) {
             btn.addEventListener('click', function() { App.rejectEmployee(btn.dataset.emp); });
         });
+    },
+
+    mdSaveScores: function(empId) {
+        var changed = false;
+        document.querySelectorAll('.md-edit[data-emp="'+empId+'"]').forEach(function(el) {
+            var evalId = el.dataset.evalId;
+            var ev = Store.evaluations.find(function(e){return e.id===evalId;});
+            if (!ev) return;
+            if (el.tagName === 'SELECT') {
+                var newScore = parseInt(el.value);
+                if (ev.score !== newScore) { ev.score = newScore; ev.mdEditedBy = 'md'; changed = true; }
+            } else {
+                var newAnswer = el.value.trim();
+                if (ev.answer !== newAnswer) { ev.answer = newAnswer; ev.mdEditedBy = 'md'; changed = true; }
+            }
+        });
+        if (changed) {
+            Store.save();
+            showToast('บันทึกการแก้ไขสำเร็จ','success');
+        }
     },
 
     approveEmployee: function(empId) {
