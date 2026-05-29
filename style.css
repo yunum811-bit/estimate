@@ -988,6 +988,46 @@ body {
     color: #c62828;
 }
 
+.total-score-section {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #e8f5e9;
+    border-radius: 8px;
+}
+
+.total-score-section label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #2e7d32;
+}
+
+.total-score-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.md-total-score {
+    padding: 0.5rem 0.75rem;
+    border: 2px solid #43a047;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    width: 120px;
+    text-align: center;
+}
+
+.md-total-score:focus {
+    outline: none;
+    border-color: #2e7d32;
+}
+
+.total-score-hint {
+    font-size: 0.8rem;
+    color: #666;
+}
+
 /* Toast Notification */
 .toast {
     position: fixed;

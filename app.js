@@ -313,14 +313,17 @@ var App = {
                 var emp = Store.users.find(function(u){return u.id===empId;});
                 var evals = grouped[empId];
                 var ratings = evals.filter(function(e){return e.type==='rating';});
-                var avg = ratings.length>0 ? ratings.reduce(function(s,e){return s+e.score;},0)/ratings.length : null;
-                var g = Store.getGrade(avg);
+                var autoAvg = ratings.length>0 ? ratings.reduce(function(s,e){return s+e.score;},0)/ratings.length : null;
+                // Use MD total score if set, otherwise use auto average
+                var mdTotal = evals[0].mdTotalScore;
+                var finalScore = (mdTotal !== undefined && mdTotal !== null) ? mdTotal : autoAvg;
+                var g = Store.getGrade(finalScore);
                 html += '<tr>';
                 html += '<td>'+(emp?emp.id:empId)+'</td>';
                 html += '<td><strong>'+(emp?emp.name:empId)+'</strong></td>';
                 html += '<td>'+(emp?emp.department||'-':'-')+'</td>';
                 html += '<td>'+(emp?emp.position||'-':'-')+'</td>';
-                html += '<td>'+(avg!==null?avg.toFixed(2):'-')+'</td>';
+                html += '<td>'+(finalScore!==null?finalScore.toFixed(2):'-')+'</td>';
                 html += '<td><span class="grade-badge-sm" style="background:'+g.color+'">'+g.grade+'</span></td>';
                 html += '<td>'+g.label+'</td>';
                 html += '<td>'+evals.length+'</td>';
@@ -335,16 +338,18 @@ var App = {
                 var emp = Store.users.find(function(u){return u.id===empId;});
                 var evals = grouped[empId];
                 var ratings = evals.filter(function(e){return e.type==='rating';});
-                var avg = ratings.length>0 ? ratings.reduce(function(s,e){return s+e.score;},0)/ratings.length : null;
-                var g = Store.getGrade(avg);
+                var autoAvg = ratings.length>0 ? ratings.reduce(function(s,e){return s+e.score;},0)/ratings.length : null;
+                var mdTotal = evals[0].mdTotalScore;
+                var finalScore = (mdTotal !== undefined && mdTotal !== null) ? mdTotal : autoAvg;
+                var g = Store.getGrade(finalScore);
 
                 html += '<div class="result-card">';
                 html += '<div class="result-card-header"><div><h4>'+(emp?emp.name:empId)+'</h4><small>'+(emp?(emp.department+' - '+(emp.position||'')):'')+'</small></div>';
-                html += '<div class="score-grade-box"><div class="score">'+(avg!==null?avg.toFixed(1):'-')+'</div><div class="grade-badge" style="background:'+g.color+'">'+g.grade+'</div></div></div>';
-                if (avg!==null) {
-                    var pct=(avg/5)*100;
+                html += '<div class="score-grade-box"><div class="score">'+(finalScore!==null?finalScore.toFixed(1):'-')+'</div><div class="grade-badge" style="background:'+g.color+'">'+g.grade+'</div></div></div>';
+                if (finalScore!==null) {
+                    var pct=(finalScore/5)*100;
                     html += '<div class="score-bar"><div class="score-bar-fill" style="width:'+pct+'%;background:'+g.color+'"></div></div>';
-                    html += '<p class="grade-label" style="color:'+g.color+'">'+g.label+'</p>';
+                    html += '<p class="grade-label" style="color:'+g.color+'">'+g.label+(mdTotal!==null&&mdTotal!==undefined?' (MD กำหนด)':' (เฉลี่ยอัตโนมัติ)')+'</p>';
                 }
                 html += '<div class="result-answers">';
                 evals.forEach(function(ev) {
@@ -737,6 +742,17 @@ var App = {
                 html += '</div>';
 
                 if (evals[0].managerComment) html += '<p class="mgr-comment"><strong>ความเห็นหัวหน้า:</strong> '+evals[0].managerComment+'</p>';
+
+                // Total score (MD can override)
+                var existingTotal = evals[0].mdTotalScore;
+                var autoTotal = avg !== null ? avg.toFixed(2) : '';
+                html += '<div class="total-score-section">';
+                html += '<label><strong>คะแนนรวม (MD กำหนดเอง)</strong></label>';
+                html += '<div class="total-score-row">';
+                html += '<input type="number" class="md-total-score" data-emp="'+empId+'" step="0.01" min="0" max="5" value="'+(existingTotal !== undefined && existingTotal !== null ? existingTotal : autoTotal)+'" placeholder="คะแนนรวม (0-5)">';
+                html += '<span class="total-score-hint">คะแนนเฉลี่ยอัตโนมัติ: '+(avg!==null?avg.toFixed(2):'-')+' | ใส่คะแนนที่ต้องการ หรือปล่อยว่างใช้ค่าเฉลี่ย</span>';
+                html += '</div></div>';
+
                 html += '<div class="form-actions"><button class="btn btn-primary md-save-btn" data-emp="'+empId+'">💾 บันทึกแก้ไข</button><button class="btn btn-success approve-btn" data-emp="'+empId+'">✅ อนุมัติ</button><button class="btn btn-danger reject-btn" data-emp="'+empId+'">❌ ส่งกลับ</button></div></div>';
             });
         }
@@ -773,6 +789,18 @@ var App = {
                 if (ev.answer !== newAnswer) { ev.answer = newAnswer; ev.mdEditedBy = 'md'; changed = true; }
             }
         });
+        // Save MD total score
+        var totalInput = document.querySelector('.md-total-score[data-emp="'+empId+'"]');
+        if (totalInput && totalInput.value.trim() !== '') {
+            var totalScore = parseFloat(totalInput.value);
+            // Store on all evaluations of this employee (so it persists)
+            Store.evaluations.forEach(function(e) {
+                if (e.employeeId === empId && e.status === 'reviewed') {
+                    e.mdTotalScore = totalScore;
+                }
+            });
+            changed = true;
+        }
         if (changed) {
             Store.save();
             showToast('บันทึกการแก้ไขสำเร็จ','success');
