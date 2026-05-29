@@ -299,7 +299,8 @@ var App = {
     // ==================== Admin: Summary (approved results from MD) ====================
     renderAdminSummary: function() {
         var approved = Store.evaluations.filter(function(e){return e.status==='approved';});
-        var html = '<div class="section active"><div class="container"><h2 class="section-title">📊 สรุปผลประเมิน (อนุมัติแล้ว)</h2>';
+        var html = '<div class="section active"><div class="container"><div class="section-header"><h2 class="section-title">📊 สรุปผลประเมิน (อนุมัติแล้ว)</h2>';
+        html += '<button class="btn btn-primary" onclick="App.exportExcel()">📥 Export Excel</button></div>';
         html += '<p class="section-desc">ผลประเมินที่ MD อนุมัติแล้ว — สรุปคะแนนและเกรดของพนักงานแต่ละคน</p>';
 
         if (approved.length === 0) {
@@ -365,6 +366,97 @@ var App = {
         }
         html += '</div></div>';
         return html;
+    },
+
+    // ==================== Admin: Export Excel ====================
+    exportExcel: function() {
+        var approved = Store.evaluations.filter(function(e){return e.status==='approved';});
+        if (approved.length === 0) { showToast('ไม่มีข้อมูลให้ export','error'); return; }
+
+        var grouped = {};
+        approved.forEach(function(e){if(!grouped[e.employeeId])grouped[e.employeeId]=[];grouped[e.employeeId].push(e);});
+
+        // Get all unique questions
+        var allQuestionIds = [];
+        approved.forEach(function(e){ if(allQuestionIds.indexOf(e.questionId)===-1) allQuestionIds.push(e.questionId); });
+
+        // Build header row
+        var headers = ['รหัส', 'ชื่อ-นามสกุล', 'แผนก', 'ตำแหน่ง'];
+        var questionTexts = [];
+        allQuestionIds.forEach(function(qId) {
+            var q = Store.questions.find(function(q){return q.id===qId;});
+            var text = q ? q.text : 'คำถาม';
+            questionTexts.push(text);
+            headers.push(text);
+        });
+        headers.push('คะแนนรวม');
+        headers.push('เกรด');
+        headers.push('ระดับ');
+
+        // Build data rows
+        var rows = [headers];
+        Object.keys(grouped).forEach(function(empId) {
+            var emp = Store.users.find(function(u){return u.id===empId;});
+            var evals = grouped[empId];
+            var ratings = evals.filter(function(e){return e.type==='rating';});
+            var autoAvg = ratings.length>0 ? ratings.reduce(function(s,e){return s+e.score;},0)/ratings.length : null;
+            var mdTotal = evals[0].mdTotalScore;
+            var finalScore = (mdTotal !== undefined && mdTotal !== null) ? mdTotal : autoAvg;
+            var g = Store.getGrade(finalScore);
+
+            var row = [
+                emp ? emp.id : empId,
+                emp ? emp.name : empId,
+                emp ? (emp.department||'-') : '-',
+                emp ? (emp.position||'-') : '-'
+            ];
+
+            // Add answers for each question
+            allQuestionIds.forEach(function(qId) {
+                var ev = evals.find(function(e){return e.questionId===qId;});
+                if (!ev) { row.push('-'); }
+                else if (ev.type === 'rating') { row.push(ev.score); }
+                else { row.push(ev.answer || '-'); }
+            });
+
+            row.push(finalScore !== null ? finalScore.toFixed(2) : '-');
+            row.push(g.grade);
+            row.push(g.label);
+            rows.push(row);
+        });
+
+        // Generate Excel XML (compatible with Excel without library)
+        var xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+        xml += '<?mso-application progid="Excel.Sheet"?>\n';
+        xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n';
+        xml += '<Styles><Style ss:ID="header"><Font ss:Bold="1"/><Interior ss:Color="#E8EAF6" ss:Pattern="Solid"/></Style></Styles>\n';
+        xml += '<Worksheet ss:Name="สรุปผลประเมิน"><Table>\n';
+
+        rows.forEach(function(row, rowIdx) {
+            xml += '<Row>';
+            row.forEach(function(cell) {
+                var style = rowIdx === 0 ? ' ss:StyleID="header"' : '';
+                var type = (typeof cell === 'number') ? 'Number' : 'String';
+                var val = String(cell).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                xml += '<Cell'+style+'><Data ss:Type="'+type+'">'+val+'</Data></Cell>';
+            });
+            xml += '</Row>\n';
+        });
+
+        xml += '</Table></Worksheet></Workbook>';
+
+        // Download
+        var blob = new Blob([xml], {type: 'application/vnd.ms-excel'});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        var date = new Date().toISOString().substring(0,10);
+        a.download = 'สรุปผลประเมิน_' + date + '.xls';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Export สำเร็จ!','success');
     },
 
     // ==================== MD: Dashboard ====================
