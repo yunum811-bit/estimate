@@ -200,8 +200,7 @@ var App = {
             ];
         } else {
             links = [
-                { page: 'emp-evaluate', label: 'ทำแบบประเมิน' },
-                { page: 'emp-results', label: 'ผลประเมินของฉัน' }
+                { page: 'emp-evaluate', label: 'ทำแบบประเมิน' }
             ];
         }
         navLinks.innerHTML = links.map(function(l) {
@@ -1346,9 +1345,10 @@ var App = {
     // ==================== Manager: Results ====================
     renderMgrResults: function() {
         var dept = this.currentUser.department;
-        var myEmps = Store.getEmployees().filter(function(e){return e.department===dept;});
+        var mgrId = this.currentUser.id;
+        var myEmps = Store.getEmployees().filter(function(e){return e.department===dept && e.id !== mgrId;});
         var empIds = myEmps.map(function(e){return e.id;});
-        var approved = Store.evaluations.filter(function(e){return e.status==='approved' && empIds.indexOf(e.employeeId)!==-1;});
+        var approved = Store.evaluations.filter(function(e){return e.status==='approved' && empIds.indexOf(e.employeeId)!==-1 && e.employeeId !== mgrId;});
 
         var html = '<div class="section active"><div class="container"><h2 class="section-title">📊 ผลประเมินแผนก '+dept+'</h2>';
         if (approved.length === 0) { html += '<p class="empty-state">ยังไม่มีผลที่อนุมัติ</p>'; }

@@ -155,42 +155,6 @@
       "reviewedBy": "MGR001",
       "reviewedDate": "2026-05-29T07:59:56.712Z",
       "mdTotalScore": 2
-    },
-    {
-      "id": "E1780042367951hi7i",
-      "employeeId": "MGR001",
-      "questionId": "Q1780026586692",
-      "type": "rating",
-      "status": "approved",
-      "date": "2026-05-29T08:12:47.951Z",
-      "evaluatedBy": "MGR001",
-      "isSelfEval": true,
-      "score": 4,
-      "mdTotalScore": 4
-    },
-    {
-      "id": "E1780042367951wp3g",
-      "employeeId": "MGR001",
-      "questionId": "Q1780028019179",
-      "type": "rating",
-      "status": "approved",
-      "date": "2026-05-29T08:12:47.951Z",
-      "evaluatedBy": "MGR001",
-      "isSelfEval": true,
-      "score": 4,
-      "mdTotalScore": 4
-    },
-    {
-      "id": "E17800423679519sxp",
-      "employeeId": "MGR001",
-      "questionId": "Q1780041778472",
-      "type": "rating",
-      "status": "approved",
-      "date": "2026-05-29T08:12:47.951Z",
-      "evaluatedBy": "MGR001",
-      "isSelfEval": true,
-      "score": 4,
-      "mdTotalScore": 4
     }
   ],
   "gradeRules": [
