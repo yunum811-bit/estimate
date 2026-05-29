@@ -100,26 +100,18 @@
       "employeeId": "EMP002",
       "questionId": "Q1780026586692",
       "type": "rating",
-      "status": "approved",
+      "status": "submitted",
       "date": "2026-05-29T07:32:33.745Z",
-      "score": 3,
-      "managerComment": "ทดสอบ",
-      "reviewedBy": "MGR002",
-      "reviewedDate": "2026-05-29T07:34:22.049Z",
-      "mdTotalScore": 3
+      "score": 3
     },
     {
       "id": "E17800399537457iig",
       "employeeId": "EMP002",
       "questionId": "Q1780028019179",
       "type": "rating",
-      "status": "approved",
+      "status": "submitted",
       "date": "2026-05-29T07:32:33.745Z",
-      "score": 3,
-      "managerComment": "ทดสอบ",
-      "reviewedBy": "MGR002",
-      "reviewedDate": "2026-05-29T07:34:22.049Z",
-      "mdTotalScore": 3
+      "score": 3
     }
   ],
   "gradeRules": [
