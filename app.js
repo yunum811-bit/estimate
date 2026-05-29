@@ -195,8 +195,7 @@ var App = {
             links = [
                 { page: 'mgr-dashboard', label: 'แดชบอร์ด' },
                 { page: 'mgr-self-eval', label: 'ประเมินตัวเอง' },
-                { page: 'mgr-review', label: 'ตรวจสอบ/ส่ง MD' },
-                { page: 'mgr-results', label: 'ผลประเมินแผนก' }
+                { page: 'mgr-review', label: 'ตรวจสอบ/ส่ง MD' }
             ];
         } else {
             links = [
