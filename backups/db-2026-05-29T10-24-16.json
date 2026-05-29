@@ -289,6 +289,15 @@
       "mdTotalScore": 4
     },
     {
+      "id": "E1780044809926hvhm",
+      "employeeId": "EMP002",
+      "questionId": "Q1780041778472",
+      "type": "rating",
+      "status": "submitted",
+      "date": "2026-05-29T08:53:29.926Z",
+      "score": 5
+    },
+    {
       "id": "E1780047172217nfpp",
       "employeeId": "MGR002",
       "type": "kpi",
@@ -370,15 +379,6 @@
       "answer": "ทบทวนใหม่",
       "status": "rejected",
       "date": "2026-05-29T10:22:57.991Z"
-    },
-    {
-      "id": "REJ1780050523772",
-      "employeeId": "EMP002",
-      "type": "reject_notice",
-      "questionId": "system",
-      "answer": "ลืมหักมาสาย",
-      "status": "rejected",
-      "date": "2026-05-29T10:28:43.772Z"
     }
   ],
   "gradeRules": [
@@ -446,15 +446,6 @@
     "kpiTitle": "KPI ของตัวเอง",
     "questionsTitle": "แบบประเมินตามคำถาม",
     "attendanceTitle": "การขาด ลา มาสาย",
-    "lateRules": [
-      {
-        "minTimes": 20,
-        "deduct": 4
-      },
-      {
-        "minTimes": 10,
-        "deduct": 2
-      }
-    ]
+    "lateRules": []
   }
 }

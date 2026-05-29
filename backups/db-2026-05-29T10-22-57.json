@@ -289,6 +289,15 @@
       "mdTotalScore": 4
     },
     {
+      "id": "E1780044809926hvhm",
+      "employeeId": "EMP002",
+      "questionId": "Q1780041778472",
+      "type": "rating",
+      "status": "submitted",
+      "date": "2026-05-29T08:53:29.926Z",
+      "score": 5
+    },
+    {
       "id": "E1780047172217nfpp",
       "employeeId": "MGR002",
       "type": "kpi",
@@ -363,22 +372,66 @@
       "date": "2026-05-29T10:10:27.417Z"
     },
     {
-      "id": "REJ1780050177991",
+      "id": "E17800498150366ork",
       "employeeId": "EMP006",
-      "type": "reject_notice",
-      "questionId": "system",
-      "answer": "ทบทวนใหม่",
-      "status": "rejected",
-      "date": "2026-05-29T10:22:57.991Z"
+      "type": "kpi",
+      "questionId": "kpi_self",
+      "score": 5,
+      "answer": "เป้าหมาย: ทดสอบ | ผลงาน: ทดสอบ",
+      "status": "reviewed",
+      "date": "2026-05-29T10:16:55.036Z",
+      "evaluatedBy": "EMP006",
+      "isSelfEval": true
     },
     {
-      "id": "REJ1780050523772",
-      "employeeId": "EMP002",
-      "type": "reject_notice",
-      "questionId": "system",
-      "answer": "ลืมหักมาสาย",
-      "status": "rejected",
-      "date": "2026-05-29T10:28:43.772Z"
+      "id": "E178004981503629lt",
+      "employeeId": "EMP006",
+      "questionId": "Q1780026586692",
+      "type": "rating",
+      "status": "reviewed",
+      "date": "2026-05-29T10:16:55.036Z",
+      "evaluatedBy": "EMP006",
+      "isSelfEval": true,
+      "score": 4
+    },
+    {
+      "id": "E178004981503674rw",
+      "employeeId": "EMP006",
+      "questionId": "Q1780028019179",
+      "type": "rating",
+      "status": "reviewed",
+      "date": "2026-05-29T10:16:55.036Z",
+      "evaluatedBy": "EMP006",
+      "isSelfEval": true,
+      "score": 5
+    },
+    {
+      "id": "E1780049815036kskr",
+      "employeeId": "EMP006",
+      "questionId": "Q1780041778472",
+      "type": "rating",
+      "status": "reviewed",
+      "date": "2026-05-29T10:16:55.036Z",
+      "evaluatedBy": "EMP006",
+      "isSelfEval": true,
+      "score": 4
+    },
+    {
+      "id": "E1780049815036l5ru",
+      "employeeId": "EMP006",
+      "type": "attendance",
+      "questionId": "attendance",
+      "answer": "ขาด: 11 วัน, ลากิจ: 3 วัน, ลาป่วย: 3 วัน, ลาพักร้อน: 5 วัน, มาสาย: 37 ครั้ง",
+      "absent": 11,
+      "leavePersonal": 3,
+      "leaveSick": 3,
+      "leaveVacation": 5,
+      "late": 37,
+      "note": "",
+      "status": "reviewed",
+      "date": "2026-05-29T10:16:55.036Z",
+      "evaluatedBy": "EMP006",
+      "isSelfEval": true
     }
   ],
   "gradeRules": [
@@ -446,15 +499,6 @@
     "kpiTitle": "KPI ของตัวเอง",
     "questionsTitle": "แบบประเมินตามคำถาม",
     "attendanceTitle": "การขาด ลา มาสาย",
-    "lateRules": [
-      {
-        "minTimes": 20,
-        "deduct": 4
-      },
-      {
-        "minTimes": 10,
-        "deduct": 2
-      }
-    ]
+    "lateRules": []
   }
 }
