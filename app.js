@@ -1457,9 +1457,13 @@ var App = {
         var answeredIds = Store.evaluations.filter(function(e){return e.employeeId===empId;}).map(function(e){return e.questionId;});
         var unanswered = myQuestions.filter(function(q){return answeredIds.indexOf(q.id)===-1;});
 
+        // Check if KPI and attendance already submitted
+        var kpiSubmitted = Store.evaluations.some(function(e){return e.employeeId===empId && e.type==='kpi';});
+        var attendanceSubmitted = Store.evaluations.some(function(e){return e.employeeId===empId && e.type==='attendance';});
+
         var html = '<div class="section active"><div class="container"><h2 class="section-title">📝 ทำแบบประเมิน</h2>';
 
-        // Show status of submitted ones
+        // Status
         var myEvals = Store.evaluations.filter(function(e){return e.employeeId===empId;});
         if (myEvals.length > 0) {
             var statusCounts = {submitted:0, reviewed:0, approved:0};
@@ -1471,21 +1475,44 @@ var App = {
             html += '</div></div>';
         }
 
-        if (unanswered.length === 0) {
-            html += '<p class="empty-state">🎉 คุณตอบคำถามครบทุกข้อแล้ว!</p>';
+        html += '<form id="emp-eval-form">';
+
+        // ==================== ส่วนที่ 1: KPI ====================
+        html += '<div class="eval-section-block">';
+        html += '<div class="eval-section-header"><span class="eval-section-num">1</span><h3>KPI ของตัวเอง</h3></div>';
+        if (kpiSubmitted) {
+            html += '<p class="empty-state">✅ คุณส่ง KPI แล้ว</p>';
         } else {
-            html += '<p style="margin-bottom:1rem;color:#666;">คุณมี <strong>'+unanswered.length+'</strong> คำถามที่ต้องตอบ</p>';
-            html += '<form id="emp-eval-form" class="eval-categories">';
+            html += '<p class="section-desc">ระบุเป้าหมายและผลงานของคุณในรอบนี้</p>';
+            html += '<div class="form-group"><label>เป้าหมาย KPI ของคุณ <span class="required">*</span></label>';
+            html += '<textarea id="kpi-goals" rows="3" class="text-answer" required placeholder="เช่น ยอดขาย 1 ล้านบาท, ปิดโปรเจค 3 งาน..."></textarea></div>';
+            html += '<div class="form-group"><label>ผลงานที่ทำได้ <span class="required">*</span></label>';
+            html += '<textarea id="kpi-results" rows="3" class="text-answer" required placeholder="เช่น ยอดขายได้ 1.2 ล้านบาท, ปิดโปรเจคได้ 4 งาน..."></textarea></div>';
+            html += '<div class="form-group"><label>คะแนน KPI ที่ประเมินตัวเอง (1-5) <span class="required">*</span></label>';
+            html += '<div class="rating-group">';
+            var labels = {5:'ดีเยี่ยม',4:'ดี',3:'ปานกลาง',2:'ต้องปรับปรุง',1:'ไม่ผ่าน'};
+            for (var k=5;k>=1;k--) html += '<label class="rating-label"><input type="radio" name="kpi_score" value="'+k+'" required> '+labels[k]+' ('+k+')</label>';
+            html += '</div></div>';
+        }
+        html += '</div>';
+
+        // ==================== ส่วนที่ 2: คำถามบังคับ ====================
+        html += '<div class="eval-section-block">';
+        html += '<div class="eval-section-header"><span class="eval-section-num">2</span><h3>แบบประเมินตามคำถาม</h3></div>';
+        if (unanswered.length === 0) {
+            html += '<p class="empty-state">✅ คุณตอบคำถามครบทุกข้อแล้ว</p>';
+        } else {
+            html += '<p class="section-desc">ตอบคำถามที่กำหนดให้ ('+unanswered.length+' ข้อ)</p>';
             unanswered.forEach(function(q, idx) {
                 var isReq = q.required !== 'no';
-                html += '<div class="eval-category"><h3>คำถามที่ '+(idx+1)+ (isReq?' <span class="required">*</span>':'') +'</h3>';
+                html += '<div class="eval-category"><h4>ข้อ '+(idx+1)+(isReq?' <span class="required">*</span>':'')+'</h4>';
                 html += '<p class="question-text-display">'+q.text+'</p>';
                 if (q.description) html += '<p class="question-desc">'+q.description+'</p>';
 
                 if (q.type === 'rating') {
                     html += '<div class="rating-group">';
-                    var labels = {5:'ดีเยี่ยม',4:'ดี',3:'ปานกลาง',2:'ต้องปรับปรุง',1:'ไม่ผ่าน'};
-                    for (var i=5;i>=1;i--) html += '<label class="rating-label"><input type="radio" name="q_'+q.id+'" value="'+i+'"'+(isReq?' required':'')+'>'+labels[i]+' ('+i+')</label>';
+                    var lb = {5:'ดีเยี่ยม',4:'ดี',3:'ปานกลาง',2:'ต้องปรับปรุง',1:'ไม่ผ่าน'};
+                    for (var i=5;i>=1;i--) html += '<label class="rating-label"><input type="radio" name="q_'+q.id+'" value="'+i+'"'+(isReq?' required':'')+'> '+lb[i]+' ('+i+')</label>';
                     html += '</div>';
                 } else if (q.type === 'text') {
                     html += '<input type="text" name="q_'+q.id+'" class="text-answer" placeholder="พิมพ์คำตอบ..."'+(isReq?' required':'')+'>';
@@ -1493,27 +1520,47 @@ var App = {
                     html += '<textarea name="q_'+q.id+'" rows="4" class="text-answer" placeholder="พิมพ์คำตอบ..."'+(isReq?' required':'')+'></textarea>';
                 } else if (q.type === 'multiple_choice') {
                     html += '<div class="choice-group">';
-                    (q.options||[]).forEach(function(opt, oi) {
-                        html += '<label class="choice-label"><input type="radio" name="q_'+q.id+'" value="'+opt+'"'+(isReq?' required':'')+'> '+opt+'</label>';
-                    });
+                    (q.options||[]).forEach(function(opt) { html += '<label class="choice-label"><input type="radio" name="q_'+q.id+'" value="'+opt+'"'+(isReq?' required':'')+'> '+opt+'</label>'; });
                     html += '</div>';
                 } else if (q.type === 'checkbox') {
                     html += '<div class="choice-group">';
-                    (q.options||[]).forEach(function(opt, oi) {
-                        html += '<label class="choice-label"><input type="checkbox" name="q_'+q.id+'" value="'+opt+'"> '+opt+'</label>';
-                    });
+                    (q.options||[]).forEach(function(opt) { html += '<label class="choice-label"><input type="checkbox" name="q_'+q.id+'" value="'+opt+'"> '+opt+'</label>'; });
                     html += '</div>';
                 } else if (q.type === 'dropdown') {
                     html += '<select name="q_'+q.id+'" class="text-answer"'+(isReq?' required':'')+'><option value="">-- เลือกคำตอบ --</option>';
-                    (q.options||[]).forEach(function(opt) {
-                        html += '<option value="'+opt+'">'+opt+'</option>';
-                    });
+                    (q.options||[]).forEach(function(opt) { html += '<option value="'+opt+'">'+opt+'</option>'; });
                     html += '</select>';
                 }
                 html += '</div>';
             });
-            html += '<div class="form-actions"><button type="submit" class="btn btn-primary">ส่งแบบประเมิน</button></div></form>';
         }
+        html += '</div>';
+
+        // ==================== ส่วนที่ 3: ขาด ลา มาสาย ====================
+        html += '<div class="eval-section-block">';
+        html += '<div class="eval-section-header"><span class="eval-section-num">3</span><h3>การขาด ลา มาสาย</h3></div>';
+        if (attendanceSubmitted) {
+            html += '<p class="empty-state">✅ คุณส่งข้อมูลการขาด/ลา/มาสายแล้ว</p>';
+        } else {
+            html += '<p class="section-desc">กรอกข้อมูลการขาด ลา มาสาย ในรอบประเมินนี้</p>';
+            html += '<div class="grade-form-row">';
+            html += '<div class="form-group"><label>จำนวนวันขาดงาน</label><input type="number" id="att-absent" min="0" value="0" class="text-answer"></div>';
+            html += '<div class="form-group"><label>จำนวนวันลา</label><input type="number" id="att-leave" min="0" value="0" class="text-answer"></div>';
+            html += '<div class="form-group"><label>จำนวนครั้งมาสาย</label><input type="number" id="att-late" min="0" value="0" class="text-answer"></div>';
+            html += '</div>';
+            html += '<div class="form-group"><label>หมายเหตุ (ถ้ามี)</label><input type="text" id="att-note" class="text-answer" placeholder="เช่น ลาป่วย 2 วัน, ลากิจ 1 วัน..."></div>';
+        }
+        html += '</div>';
+
+        // Submit button
+        var hasAnythingToSubmit = !kpiSubmitted || unanswered.length > 0 || !attendanceSubmitted;
+        if (hasAnythingToSubmit) {
+            html += '<div class="form-actions"><button type="submit" class="btn btn-primary">ส่งแบบประเมิน</button></div>';
+        } else {
+            html += '<p class="empty-state">🎉 คุณส่งข้อมูลครบทุกส่วนแล้ว!</p>';
+        }
+
+        html += '</form>';
         html += '</div></div>';
         return html;
     },
@@ -1529,6 +1576,27 @@ var App = {
 
     submitEmpEvaluation: function() {
         var empId = this.currentUser.id;
+        var kpiSubmitted = Store.evaluations.some(function(e){return e.employeeId===empId && e.type==='kpi';});
+        var attendanceSubmitted = Store.evaluations.some(function(e){return e.employeeId===empId && e.type==='attendance';});
+
+        // Part 1: KPI
+        if (!kpiSubmitted) {
+            var kpiGoals = document.getElementById('kpi-goals');
+            var kpiResults = document.getElementById('kpi-results');
+            var kpiScore = document.querySelector('input[name="kpi_score"]:checked');
+            if (!kpiGoals || !kpiGoals.value.trim()) { showToast('กรุณากรอกเป้าหมาย KPI','error'); return; }
+            if (!kpiResults || !kpiResults.value.trim()) { showToast('กรุณากรอกผลงาน KPI','error'); return; }
+            if (!kpiScore) { showToast('กรุณาให้คะแนน KPI','error'); return; }
+            Store.evaluations.push({
+                id: 'E'+Date.now()+Math.random().toString(36).substring(2,6),
+                employeeId: empId, type: 'kpi', questionId: 'kpi_self',
+                score: parseInt(kpiScore.value),
+                answer: 'เป้าหมาย: '+kpiGoals.value.trim()+' | ผลงาน: '+kpiResults.value.trim(),
+                status: 'submitted', date: new Date().toISOString()
+            });
+        }
+
+        // Part 2: Questions
         var myQuestions = Store.getQuestionsForEmployee(empId);
         var answeredIds = Store.evaluations.filter(function(e){return e.employeeId===empId;}).map(function(e){return e.questionId;});
         var unanswered = myQuestions.filter(function(q){return answeredIds.indexOf(q.id)===-1;});
@@ -1553,8 +1621,7 @@ var App = {
                 evalEntry.answer = chosen ? chosen.value : '-';
             } else if (q.type === 'checkbox') {
                 var checks = document.querySelectorAll('input[name="q_'+q.id+'"]:checked');
-                var vals = [];
-                checks.forEach(function(c){vals.push(c.value);});
+                var vals = []; checks.forEach(function(c){vals.push(c.value);});
                 if (vals.length === 0 && isReq) { showToast('กรุณาตอบคำถามที่จำเป็น','error'); return; }
                 evalEntry.answer = vals.length > 0 ? vals.join(', ') : '-';
             } else if (q.type === 'dropdown') {
@@ -1566,14 +1633,28 @@ var App = {
                 if ((!inp || !inp.value.trim()) && isReq) { showToast('กรุณาตอบคำถามที่จำเป็น','error'); return; }
                 evalEntry.answer = inp ? inp.value.trim() : '-';
             } else {
-                // paragraph
                 var ta = document.querySelector('textarea[name="q_'+q.id+'"]');
                 if ((!ta || !ta.value.trim()) && isReq) { showToast('กรุณาตอบคำถามที่จำเป็น','error'); return; }
                 evalEntry.answer = ta ? ta.value.trim() : '-';
             }
-
             Store.evaluations.push(evalEntry);
         }
+
+        // Part 3: Attendance
+        if (!attendanceSubmitted) {
+            var absent = document.getElementById('att-absent') ? parseInt(document.getElementById('att-absent').value)||0 : 0;
+            var leave = document.getElementById('att-leave') ? parseInt(document.getElementById('att-leave').value)||0 : 0;
+            var late = document.getElementById('att-late') ? parseInt(document.getElementById('att-late').value)||0 : 0;
+            var note = document.getElementById('att-note') ? document.getElementById('att-note').value.trim() : '';
+            Store.evaluations.push({
+                id: 'E'+Date.now()+Math.random().toString(36).substring(2,6),
+                employeeId: empId, type: 'attendance', questionId: 'attendance',
+                answer: 'ขาด: '+absent+' วัน, ลา: '+leave+' วัน, มาสาย: '+late+' ครั้ง'+(note?' ('+note+')':''),
+                absent: absent, leave: leave, late: late, note: note,
+                status: 'submitted', date: new Date().toISOString()
+            });
+        }
+
         Store.save();
         showToast('ส่งแบบประเมินสำเร็จ! รอหัวหน้าแผนกตรวจสอบ','success');
         this.render('emp-evaluate'); this.bindEmpEvaluate();

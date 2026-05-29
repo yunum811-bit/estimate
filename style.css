@@ -1192,3 +1192,42 @@ body {
     min-width: 45px;
     text-align: right;
 }
+
+/* Evaluation Section Blocks */
+.eval-section-block {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    border-left: 4px solid #3f51b5;
+}
+
+.eval-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #e8eaf6;
+}
+
+.eval-section-num {
+    background: #3f51b5;
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.eval-section-header h3 {
+    color: #1a237e;
+    margin: 0;
+    font-size: 1.15rem;
+}
