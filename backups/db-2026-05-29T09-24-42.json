@@ -72,14 +72,6 @@
       "department": "HR",
       "position": "เจ้าหน้าที่สรรหา",
       "password": "1234"
-    },
-    {
-      "id": "EMP006",
-      "name": "test",
-      "role": "employee",
-      "department": "IT",
-      "position": "support",
-      "password": "1234"
     }
   ],
   "questions": [
@@ -356,5 +348,9 @@
       "color": "#e53935"
     }
   ],
-  "sectionWeights": {}
+  "sectionWeights": {
+    "kpi": 40,
+    "questions": 40,
+    "attendance": 20
+  }
 }
