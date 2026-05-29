@@ -370,68 +370,6 @@
       "answer": "ทบทวน",
       "status": "rejected",
       "date": "2026-05-29T10:10:27.417Z"
-    },
-    {
-      "id": "E17800498150366ork",
-      "employeeId": "EMP006",
-      "type": "kpi",
-      "questionId": "kpi_self",
-      "score": 5,
-      "answer": "เป้าหมาย: ทดสอบ | ผลงาน: ทดสอบ",
-      "status": "reviewed",
-      "date": "2026-05-29T10:16:55.036Z",
-      "evaluatedBy": "EMP006",
-      "isSelfEval": true
-    },
-    {
-      "id": "E178004981503629lt",
-      "employeeId": "EMP006",
-      "questionId": "Q1780026586692",
-      "type": "rating",
-      "status": "reviewed",
-      "date": "2026-05-29T10:16:55.036Z",
-      "evaluatedBy": "EMP006",
-      "isSelfEval": true,
-      "score": 4
-    },
-    {
-      "id": "E178004981503674rw",
-      "employeeId": "EMP006",
-      "questionId": "Q1780028019179",
-      "type": "rating",
-      "status": "reviewed",
-      "date": "2026-05-29T10:16:55.036Z",
-      "evaluatedBy": "EMP006",
-      "isSelfEval": true,
-      "score": 5
-    },
-    {
-      "id": "E1780049815036kskr",
-      "employeeId": "EMP006",
-      "questionId": "Q1780041778472",
-      "type": "rating",
-      "status": "reviewed",
-      "date": "2026-05-29T10:16:55.036Z",
-      "evaluatedBy": "EMP006",
-      "isSelfEval": true,
-      "score": 4
-    },
-    {
-      "id": "E1780049815036l5ru",
-      "employeeId": "EMP006",
-      "type": "attendance",
-      "questionId": "attendance",
-      "answer": "ขาด: 11 วัน, ลากิจ: 3 วัน, ลาป่วย: 3 วัน, ลาพักร้อน: 5 วัน, มาสาย: 37 ครั้ง",
-      "absent": 11,
-      "leavePersonal": 3,
-      "leaveSick": 3,
-      "leaveVacation": 5,
-      "late": 37,
-      "note": "",
-      "status": "reviewed",
-      "date": "2026-05-29T10:16:55.036Z",
-      "evaluatedBy": "EMP006",
-      "isSelfEval": true
     }
   ],
   "gradeRules": [
@@ -499,6 +437,11 @@
     "kpiTitle": "KPI ของตัวเอง",
     "questionsTitle": "แบบประเมินตามคำถาม",
     "attendanceTitle": "การขาด ลา มาสาย",
-    "lateRules": []
+    "lateRules": [
+      {
+        "minTimes": 37,
+        "deduct": 5
+      }
+    ]
   }
 }
