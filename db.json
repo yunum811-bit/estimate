@@ -1,25 +1,147 @@
 {
   "users": [
-    { "id": "admin", "name": "ผู้ดูแลระบบ", "role": "admin", "password": "1234" },
-    { "id": "md", "name": "คุณประเสริฐ (MD)", "role": "md", "password": "1234" },
-    { "id": "MGR001", "name": "สุภาพร หัวหน้า IT", "role": "manager", "department": "IT", "password": "1234" },
-    { "id": "MGR002", "name": "วรรณา หัวหน้า HR", "role": "manager", "department": "HR", "password": "1234" },
-    { "id": "MGR003", "name": "ประยุทธ หัวหน้า Marketing", "role": "manager", "department": "Marketing", "password": "1234" },
-    { "id": "EMP001", "name": "สมชาย ใจดี", "role": "employee", "department": "IT", "position": "โปรแกรมเมอร์", "password": "1234" },
-    { "id": "EMP002", "name": "สมหญิง รักงาน", "role": "employee", "department": "HR", "position": "เจ้าหน้าที่ HR", "password": "1234" },
-    { "id": "EMP003", "name": "วิชัย เก่งกาจ", "role": "employee", "department": "Marketing", "position": "นักการตลาด", "password": "1234" },
-    { "id": "EMP004", "name": "นภา สว่างจิต", "role": "employee", "department": "IT", "position": "นักพัฒนา", "password": "1234" },
-    { "id": "EMP005", "name": "ธนา พัฒนดี", "role": "employee", "department": "HR", "position": "เจ้าหน้าที่สรรหา", "password": "1234" }
+    {
+      "id": "admin",
+      "name": "ผู้ดูแลระบบ",
+      "role": "admin",
+      "password": "1234"
+    },
+    {
+      "id": "md",
+      "name": "คุณประเสริฐ (MD)",
+      "role": "md",
+      "password": "1234"
+    },
+    {
+      "id": "MGR001",
+      "name": "สุภาพร หัวหน้า IT",
+      "role": "manager",
+      "department": "IT",
+      "password": "1234"
+    },
+    {
+      "id": "MGR002",
+      "name": "วรรณา หัวหน้า HR",
+      "role": "manager",
+      "department": "HR",
+      "password": "1234"
+    },
+    {
+      "id": "MGR003",
+      "name": "ประยุทธ หัวหน้า Marketing",
+      "role": "manager",
+      "department": "Marketing",
+      "password": "1234"
+    },
+    {
+      "id": "EMP001",
+      "name": "สมชาย ใจดี",
+      "role": "employee",
+      "department": "IT",
+      "position": "โปรแกรมเมอร์",
+      "password": "1234"
+    },
+    {
+      "id": "EMP002",
+      "name": "สมหญิง รักงาน",
+      "role": "employee",
+      "department": "HR",
+      "position": "เจ้าหน้าที่ HR",
+      "password": "1234"
+    },
+    {
+      "id": "EMP003",
+      "name": "วิชัย เก่งกาจ",
+      "role": "employee",
+      "department": "Marketing",
+      "position": "นักการตลาด",
+      "password": "1234"
+    },
+    {
+      "id": "EMP004",
+      "name": "นภา สว่างจิต",
+      "role": "employee",
+      "department": "IT",
+      "position": "นักพัฒนา",
+      "password": "1234"
+    },
+    {
+      "id": "EMP005",
+      "name": "ธนา พัฒนดี",
+      "role": "employee",
+      "department": "HR",
+      "position": "เจ้าหน้าที่สรรหา",
+      "password": "1234"
+    }
   ],
-  "questions": [],
+  "questions": [
+    {
+      "id": "Q1780026586692",
+      "text": "1. Responsibility : มีความรับผิดชอบ",
+      "description": "ปฏิบัติงานที่ได้รับมอบหมายอย่างครบถ้วน ตรงต่อเวลา และติดตามงานจนสำเร็จตามเป้าหมาย มีความใส่ใจในคุณภาพงาน พร้อมรับผิดชอบต่อผลลัพธ์และแก้ไขปัญหาเมื่อเกิดข้อผิดพลาด",
+      "type": "rating",
+      "options": [],
+      "target": "all",
+      "required": "yes"
+    }
+  ],
   "evaluations": [],
   "gradeRules": [
-    { "id": 1, "grade": "A", "label": "ดีเยี่ยม", "min": 4.5, "max": 5.0, "color": "#43a047" },
-    { "id": 2, "grade": "B+", "label": "ดีมาก", "min": 4.0, "max": 4.49, "color": "#66bb6a" },
-    { "id": 3, "grade": "B", "label": "ดี", "min": 3.5, "max": 3.99, "color": "#7cb342" },
-    { "id": 4, "grade": "C+", "label": "ค่อนข้างดี", "min": 3.0, "max": 3.49, "color": "#fdd835" },
-    { "id": 5, "grade": "C", "label": "ปานกลาง", "min": 2.5, "max": 2.99, "color": "#ffb300" },
-    { "id": 6, "grade": "D", "label": "ต้องปรับปรุง", "min": 1.5, "max": 2.49, "color": "#fb8c00" },
-    { "id": 7, "grade": "F", "label": "ไม่ผ่าน", "min": 0, "max": 1.49, "color": "#e53935" }
+    {
+      "id": 1,
+      "grade": "A",
+      "label": "ดีเยี่ยม",
+      "min": 4.5,
+      "max": 5,
+      "color": "#43a047"
+    },
+    {
+      "id": 2,
+      "grade": "B+",
+      "label": "ดีมาก",
+      "min": 4,
+      "max": 4.49,
+      "color": "#66bb6a"
+    },
+    {
+      "id": 3,
+      "grade": "B",
+      "label": "ดี",
+      "min": 3.5,
+      "max": 3.99,
+      "color": "#7cb342"
+    },
+    {
+      "id": 4,
+      "grade": "C+",
+      "label": "ค่อนข้างดี",
+      "min": 3,
+      "max": 3.49,
+      "color": "#fdd835"
+    },
+    {
+      "id": 5,
+      "grade": "C",
+      "label": "ปานกลาง",
+      "min": 2.5,
+      "max": 2.99,
+      "color": "#ffb300"
+    },
+    {
+      "id": 6,
+      "grade": "D",
+      "label": "ต้องปรับปรุง",
+      "min": 1.5,
+      "max": 2.49,
+      "color": "#fb8c00"
+    },
+    {
+      "id": 7,
+      "grade": "F",
+      "label": "ไม่ผ่าน",
+      "min": 0,
+      "max": 1.49,
+      "color": "#e53935"
+    }
   ]
 }

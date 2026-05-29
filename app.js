@@ -236,8 +236,13 @@ var App = {
         });
         this.currentPage = page;
         // Reload data from server to see changes from other users
-        await Store.loadAll();
+        try { await Store.loadAll(); } catch(e) {}
         this.render(page);
+    },
+
+    // Render without reloading from server (used after local save)
+    renderCurrent: function() {
+        this.render(this.currentPage);
     },
 
     render: function(page) {
@@ -368,7 +373,7 @@ var App = {
         });
     },
 
-    saveUser: function() {
+    saveUser: async function() {
         var role = document.getElementById('nu-role').value;
         var prefix = role === 'manager' ? 'MGR' : 'EMP';
         var user = {
@@ -380,19 +385,19 @@ var App = {
             password: document.getElementById('nu-password').value || '1234'
         };
         Store.users.push(user);
-        Store.save();
+        await Store.save();
         showToast('เพิ่มผู้ใช้สำเร็จ (' + user.id + ')', 'success');
-        this.render('md-users');
+        this.render('admin-users');
         this.bindMdUsers();
     },
 
-    deleteUser: function(id) {
-        if (id === 'md') { showToast('ไม่สามารถลบ MD ได้', 'error'); return; }
+    deleteUser: async function(id) {
+        if (id === 'md' || id === 'admin') { showToast('ไม่สามารถลบผู้ใช้นี้ได้', 'error'); return; }
         if (!confirm('ต้องการลบผู้ใช้ ' + id + ' หรือไม่?')) return;
         Store.users = Store.users.filter(function(u) { return u.id !== id; });
         Store.evaluations = Store.evaluations.filter(function(e) { return e.employeeId !== id; });
-        Store.save();
-        this.render('md-users');
+        await Store.save();
+        this.render('admin-users');
         this.bindMdUsers();
         showToast('ลบสำเร็จ', 'info');
     },
@@ -479,7 +484,7 @@ var App = {
         });
     },
 
-    saveQuestion: function() {
+    saveQuestion: async function() {
         var type = document.getElementById('q-type').value;
         var options = [];
         if (type === 'multiple_choice' || type === 'checkbox' || type === 'dropdown') {
@@ -496,17 +501,17 @@ var App = {
             target: document.getElementById('q-target').value,
             required: document.getElementById('q-required').value
         });
-        Store.save();
+        await Store.save();
         showToast('เพิ่มคำถามสำเร็จ', 'success');
         this.render('admin-questions'); this.bindMdQuestions();
     },
 
-    deleteQuestion: function(id) {
+    deleteQuestion: async function(id) {
         if (!confirm('ลบคำถามนี้?')) return;
         Store.questions = Store.questions.filter(function(q){return q.id!==id;});
         Store.evaluations = Store.evaluations.filter(function(e){return e.questionId!==id;});
-        Store.save();
-        this.render('md-questions'); this.bindMdQuestions();
+        await Store.save();
+        this.render('admin-questions'); this.bindMdQuestions();
         showToast('ลบคำถามสำเร็จ', 'info');
     },
 
