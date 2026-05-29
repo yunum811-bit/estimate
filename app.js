@@ -852,7 +852,7 @@ var App = {
         var submitted = Store.evaluations.filter(function(e){return e.status==='submitted' && empIds.indexOf(e.employeeId)!==-1;});
 
         var html = '<div class="section active"><div class="container"><h2 class="section-title">📥 ตรวจสอบและส่ง MD</h2>';
-        html += '<p class="section-desc">ตรวจสอบแบบประเมินจากพนักงานในแผนก ' + dept + ' แล้วส่งต่อให้ MD</p>';
+        html += '<p class="section-desc">ตรวจสอบ/แก้ไขแบบประเมินจากพนักงานในแผนก ' + dept + ' แล้วส่งต่อให้ MD</p>';
 
         if (submitted.length === 0) {
             html += '<p class="empty-state">ไม่มีรายการรอตรวจสอบ</p>';
@@ -867,12 +867,31 @@ var App = {
                 var g = Store.getGrade(avg);
                 html += '<div class="result-card"><div class="result-card-header"><div><h4>'+(emp?emp.name:empId)+'</h4><small>'+(emp?emp.position:'')+'</small></div>';
                 html += '<div class="score-grade-box"><div class="score">'+(avg!==null?avg.toFixed(1):'-')+'</div><div class="grade-badge" style="background:'+g.color+'">'+g.grade+'</div></div></div>';
+
+                // Editable answers
                 html += '<div class="result-answers">';
-                evals.forEach(function(ev){var q=Store.questions.find(function(q){return q.id===ev.questionId;});var ans=ev.type==='rating'?'<span class="badge badge-evaluated">'+ev.score+'/5</span>':'<em>'+ev.answer+'</em>';html+='<div class="result-answer-item"><span class="q-label">'+(q?q.text:'ลบแล้ว')+'</span>'+ans+'</div>';});
+                evals.forEach(function(ev) {
+                    var q = Store.questions.find(function(q){return q.id===ev.questionId;});
+                    var qText = q ? q.text : 'ลบแล้ว';
+                    html += '<div class="result-answer-item editable-item">';
+                    html += '<span class="q-label">'+qText+'</span>';
+                    if (ev.type === 'rating') {
+                        html += '<select class="edit-score-select" data-eval-id="'+ev.id+'">';
+                        for (var s=5; s>=1; s--) {
+                            var labels = {5:'ดีเยี่ยม',4:'ดี',3:'ปานกลาง',2:'ต้องปรับปรุง',1:'ไม่ผ่าน'};
+                            html += '<option value="'+s+'"'+(ev.score===s?' selected':'')+'>'+s+' - '+labels[s]+'</option>';
+                        }
+                        html += '</select>';
+                    } else {
+                        html += '<input type="text" class="edit-answer-input" data-eval-id="'+ev.id+'" value="'+(ev.answer||'').replace(/"/g,'&quot;')+'">';
+                    }
+                    html += '</div>';
+                });
                 html += '</div>';
+
                 if (evals[0].rejectReason) html += '<p class="reject-reason">⚠️ MD ส่งกลับ: '+evals[0].rejectReason+'</p>';
                 html += '<div class="form-group" style="margin-top:1rem;"><label>ความเห็นหัวหน้าแผนก (ถ้ามี)</label><textarea class="mgr-comment-input text-answer" data-emp="'+empId+'" rows="2" placeholder="ความเห็นเพิ่มเติม..."></textarea></div>';
-                html += '<div class="form-actions"><button class="btn btn-success send-md-btn" data-emp="'+empId+'">📤 ส่งให้ MD อนุมัติ</button></div></div>';
+                html += '<div class="form-actions"><button class="btn btn-primary save-edit-btn" data-emp="'+empId+'">💾 บันทึกการแก้ไข</button><button class="btn btn-success send-md-btn" data-emp="'+empId+'">📤 ส่งให้ MD อนุมัติ</button></div></div>';
             });
         }
         html += '</div></div>';
@@ -880,14 +899,47 @@ var App = {
     },
 
     bindMgrReview: function() {
+        document.querySelectorAll('.save-edit-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                App.saveEditedScores(btn.dataset.emp);
+            });
+        });
         document.querySelectorAll('.send-md-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var empId = btn.dataset.emp;
+                // Save edits first, then send
+                App.saveEditedScores(empId);
                 var commentEl = document.querySelector('.mgr-comment-input[data-emp="'+empId+'"]');
                 var comment = commentEl ? commentEl.value : '';
                 App.sendToMd(empId, comment);
             });
         });
+    },
+
+    saveEditedScores: function(empId) {
+        var changed = false;
+        // Update rating scores
+        document.querySelectorAll('.edit-score-select').forEach(function(sel) {
+            var evalId = sel.dataset.evalId;
+            var ev = Store.evaluations.find(function(e){return e.id===evalId && e.employeeId===empId;});
+            if (ev) {
+                var newScore = parseInt(sel.value);
+                if (ev.score !== newScore) { ev.score = newScore; ev.editedBy = App.currentUser.id; changed = true; }
+            }
+        });
+        // Update text answers
+        document.querySelectorAll('.edit-answer-input').forEach(function(inp) {
+            var evalId = inp.dataset.evalId;
+            var ev = Store.evaluations.find(function(e){return e.id===evalId && e.employeeId===empId;});
+            if (ev) {
+                var newAnswer = inp.value.trim();
+                if (ev.answer !== newAnswer) { ev.answer = newAnswer; ev.editedBy = App.currentUser.id; changed = true; }
+            }
+        });
+        if (changed) {
+            Store.save();
+            showToast('บันทึกการแก้ไขสำเร็จ','success');
+        }
     },
 
     sendToMd: function(empId, comment) {
