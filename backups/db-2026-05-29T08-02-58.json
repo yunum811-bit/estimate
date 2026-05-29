@@ -92,15 +92,6 @@
       "options": [],
       "target": "all",
       "required": "yes"
-    },
-    {
-      "text": "test",
-      "description": "test",
-      "type": "rating",
-      "options": [],
-      "target": "all",
-      "required": "yes",
-      "id": "Q1780041778472"
     }
   ],
   "evaluations": [

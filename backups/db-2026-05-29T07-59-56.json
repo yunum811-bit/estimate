@@ -92,15 +92,6 @@
       "options": [],
       "target": "all",
       "required": "yes"
-    },
-    {
-      "text": "test",
-      "description": "test",
-      "type": "rating",
-      "options": [],
-      "target": "all",
-      "required": "yes",
-      "id": "Q1780041778472"
     }
   ],
   "evaluations": [
@@ -135,26 +126,18 @@
       "employeeId": "EMP001",
       "questionId": "Q1780026586692",
       "type": "rating",
-      "status": "approved",
+      "status": "submitted",
       "date": "2026-05-29T07:59:16.194Z",
-      "score": 2,
-      "managerComment": "ทดสอบ",
-      "reviewedBy": "MGR001",
-      "reviewedDate": "2026-05-29T07:59:56.712Z",
-      "mdTotalScore": 2
+      "score": 2
     },
     {
       "id": "E1780041556194ixyb",
       "employeeId": "EMP001",
       "questionId": "Q1780028019179",
       "type": "rating",
-      "status": "approved",
+      "status": "submitted",
       "date": "2026-05-29T07:59:16.194Z",
-      "score": 2,
-      "managerComment": "ทดสอบ",
-      "reviewedBy": "MGR001",
-      "reviewedDate": "2026-05-29T07:59:56.712Z",
-      "mdTotalScore": 2
+      "score": 2
     }
   ],
   "gradeRules": [
