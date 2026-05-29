@@ -452,7 +452,7 @@ var App = {
             '<h3>เพิ่มผู้ใช้ใหม่</h3><form id="add-user-form">' +
             '<div class="grade-form-row">' +
             '<div class="form-group"><label>ชื่อ</label><input type="text" id="nu-name" required></div>' +
-            '<div class="form-group"><label>บทบาท</label><select id="nu-role" required><option value="employee">พนักงาน</option><option value="manager">หัวหน้าแผนก</option></select></div>' +
+            '<div class="form-group"><label>บทบาท</label><select id="nu-role" required><option value="employee">Employee (พนักงาน)</option><option value="manager">Manager (หัวหน้าแผนก)</option><option value="md">MD</option><option value="admin">Admin</option></select></div>' +
             '<div class="form-group"><label>แผนก</label><select id="nu-dept"><option value="IT">IT</option><option value="HR">HR</option><option value="Marketing">Marketing</option><option value="Finance">Finance</option><option value="Sales">Sales</option></select></div>' +
             '<div class="form-group"><label>ตำแหน่ง</label><input type="text" id="nu-position" placeholder="ตำแหน่ง"></div>' +
             '<div class="form-group"><label>รหัสผ่าน</label><input type="text" id="nu-password" value="1234"></div>' +
@@ -493,9 +493,10 @@ var App = {
             showToast('แก้ไขผู้ใช้สำเร็จ', 'success');
         } else {
             // Add new user
-            var prefix = role === 'manager' ? 'MGR' : 'EMP';
+            var prefix = role === 'manager' ? 'MGR' : role === 'md' ? 'MD' : role === 'admin' ? 'ADM' : 'EMP';
+            var newId = (role === 'md' || role === 'admin') ? role + Date.now().toString(36) : Store.getNextId(prefix);
             var user = {
-                id: Store.getNextId(prefix),
+                id: newId,
                 name: name,
                 role: role,
                 department: department,
