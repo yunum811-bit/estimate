@@ -1026,6 +1026,19 @@ body {
 .total-score-hint {
     font-size: 0.8rem;
     color: #666;
+    display: block;
+    margin-top: 0.5rem;
+}
+
+.live-grade-display {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.live-grade-label {
+    font-weight: 700;
+    font-size: 0.95rem;
 }
 
 /* Toast Notification */

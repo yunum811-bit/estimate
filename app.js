@@ -746,12 +746,19 @@ var App = {
                 // Total score (MD can override)
                 var existingTotal = evals[0].mdTotalScore;
                 var autoTotal = avg !== null ? avg.toFixed(2) : '';
+                var displayScore = (existingTotal !== undefined && existingTotal !== null) ? existingTotal : (avg !== null ? avg : null);
+                var displayGrade = Store.getGrade(displayScore);
                 html += '<div class="total-score-section">';
                 html += '<label><strong>คะแนนรวม (MD กำหนดเอง)</strong></label>';
                 html += '<div class="total-score-row">';
-                html += '<input type="number" class="md-total-score" data-emp="'+empId+'" step="0.01" min="0" max="5" value="'+(existingTotal !== undefined && existingTotal !== null ? existingTotal : autoTotal)+'" placeholder="คะแนนรวม (0-5)">';
-                html += '<span class="total-score-hint">คะแนนเฉลี่ยอัตโนมัติ: '+(avg!==null?avg.toFixed(2):'-')+' | ใส่คะแนนที่ต้องการ หรือปล่อยว่างใช้ค่าเฉลี่ย</span>';
-                html += '</div></div>';
+                html += '<input type="number" class="md-total-score" data-emp="'+empId+'" step="0.01" min="0" max="5" value="'+(existingTotal !== undefined && existingTotal !== null ? existingTotal : autoTotal)+'" placeholder="0-5" oninput="App.onTotalScoreChange(\''+empId+'\')">';
+                html += '<div class="live-grade-display" id="live-grade-'+empId+'">';
+                html += '<span class="grade-badge" style="background:'+displayGrade.color+'">'+displayGrade.grade+'</span>';
+                html += '<span class="live-grade-label" style="color:'+displayGrade.color+'">'+displayGrade.label+'</span>';
+                html += '</div>';
+                html += '</div>';
+                html += '<span class="total-score-hint">คะแนนเฉลี่ยอัตโนมัติ: '+(avg!==null?avg.toFixed(2):'-')+' | พิมพ์คะแนนใหม่เพื่อเปลี่ยนเกรด</span>';
+                html += '</div>';
 
                 html += '<div class="form-actions"><button class="btn btn-primary md-save-btn" data-emp="'+empId+'">💾 บันทึกแก้ไข</button><button class="btn btn-success approve-btn" data-emp="'+empId+'">✅ อนุมัติ</button><button class="btn btn-danger reject-btn" data-emp="'+empId+'">❌ ส่งกลับ</button></div></div>';
             });
@@ -807,6 +814,28 @@ var App = {
         }
     },
 
+    onTotalScoreChange: function(empId) {
+        var input = document.querySelector('.md-total-score[data-emp="'+empId+'"]');
+        var display = document.getElementById('live-grade-'+empId);
+        if (!input || !display) return;
+
+        var val = parseFloat(input.value);
+        var g;
+        if (isNaN(val) || input.value.trim() === '') {
+            g = { grade: '-', label: 'ไม่มีข้อมูล', color: '#999' };
+        } else {
+            g = Store.getGrade(val);
+        }
+        display.innerHTML = '<span class="grade-badge" style="background:'+g.color+'">'+g.grade+'</span>' +
+            '<span class="live-grade-label" style="color:'+g.color+'">'+g.label+'</span>';
+
+        // Also update the header score display
+        var headerScore = document.querySelector('.md-score[data-emp="'+empId+'"]');
+        if (headerScore) {
+            headerScore.textContent = isNaN(val) ? '-' : val.toFixed(1);
+        }
+    },
+
     approveEmployee: function(empId) {
         Store.evaluations.forEach(function(e) {
             if (e.employeeId === empId && e.status === 'reviewed') e.status = 'approved';
@@ -840,11 +869,13 @@ var App = {
                 var emp = Store.users.find(function(u){return u.id===empId;});
                 var evals = grouped[empId];
                 var ratings = evals.filter(function(e){return e.type==='rating';});
-                var avg = ratings.length>0?ratings.reduce(function(s,e){return s+e.score;},0)/ratings.length:null;
-                var g = Store.getGrade(avg);
+                var autoAvg = ratings.length>0?ratings.reduce(function(s,e){return s+e.score;},0)/ratings.length:null;
+                var mdTotal = evals[0].mdTotalScore;
+                var finalScore = (mdTotal !== undefined && mdTotal !== null) ? mdTotal : autoAvg;
+                var g = Store.getGrade(finalScore);
                 html += '<div class="result-card"><div class="result-card-header"><div><h4>'+(emp?emp.name:empId)+'</h4><small>'+(emp?(emp.department+' - '+(emp.position||'')):'')+'</small></div>';
-                html += '<div class="score-grade-box"><div class="score">'+(avg!==null?avg.toFixed(1):'-')+'</div><div class="grade-badge" style="background:'+g.color+'">'+g.grade+'</div></div></div>';
-                if(avg!==null){var pct=(avg/5)*100;html+='<div class="score-bar"><div class="score-bar-fill" style="width:'+pct+'%;background:'+g.color+'"></div></div><p class="grade-label" style="color:'+g.color+'">'+g.label+'</p>';}
+                html += '<div class="score-grade-box"><div class="score">'+(finalScore!==null?finalScore.toFixed(1):'-')+'</div><div class="grade-badge" style="background:'+g.color+'">'+g.grade+'</div></div></div>';
+                if(finalScore!==null){var pct=(finalScore/5)*100;html+='<div class="score-bar"><div class="score-bar-fill" style="width:'+pct+'%;background:'+g.color+'"></div></div><p class="grade-label" style="color:'+g.color+'">'+g.label+(mdTotal!==null&&mdTotal!==undefined?' (MD กำหนด)':'')+'</p>';}
                 html += '<div class="result-answers">';
                 evals.forEach(function(ev){var q=Store.questions.find(function(q){return q.id===ev.questionId;});var ans=ev.type==='rating'?'<span class="badge badge-evaluated">'+ev.score+'/5</span>':'<em>'+ev.answer+'</em>';html+='<div class="result-answer-item"><span class="q-label">'+(q?q.text:'ลบแล้ว')+'</span>'+ans+'</div>';});
                 html += '</div></div>';
@@ -1110,11 +1141,13 @@ var App = {
                 var emp = Store.users.find(function(u){return u.id===empId;});
                 var evals = grouped[empId];
                 var ratings = evals.filter(function(e){return e.type==='rating';});
-                var avg = ratings.length>0?ratings.reduce(function(s,e){return s+e.score;},0)/ratings.length:null;
-                var g = Store.getGrade(avg);
+                var autoAvg = ratings.length>0?ratings.reduce(function(s,e){return s+e.score;},0)/ratings.length:null;
+                var mdTotal = evals[0].mdTotalScore;
+                var finalScore = (mdTotal !== undefined && mdTotal !== null) ? mdTotal : autoAvg;
+                var g = Store.getGrade(finalScore);
                 html += '<div class="result-card"><div class="result-card-header"><div><h4>'+(emp?emp.name:empId)+'</h4></div>';
-                html += '<div class="score-grade-box"><div class="score">'+(avg!==null?avg.toFixed(1):'-')+'</div><div class="grade-badge" style="background:'+g.color+'">'+g.grade+'</div></div></div>';
-                if(avg!==null){var pct=(avg/5)*100;html+='<div class="score-bar"><div class="score-bar-fill" style="width:'+pct+'%;background:'+g.color+'"></div></div><p class="grade-label" style="color:'+g.color+'">'+g.label+'</p>';}
+                html += '<div class="score-grade-box"><div class="score">'+(finalScore!==null?finalScore.toFixed(1):'-')+'</div><div class="grade-badge" style="background:'+g.color+'">'+g.grade+'</div></div></div>';
+                if(finalScore!==null){var pct=(finalScore/5)*100;html+='<div class="score-bar"><div class="score-bar-fill" style="width:'+pct+'%;background:'+g.color+'"></div></div><p class="grade-label" style="color:'+g.color+'">'+g.label+'</p>';}
                 html += '</div>';
             });
             html += '</div>';
@@ -1278,14 +1311,16 @@ var App = {
         // Show approved results with scores
         if (approved.length > 0) {
             var ratings = approved.filter(function(e){return e.type==='rating';});
-            var avg = ratings.length>0?ratings.reduce(function(s,e){return s+e.score;},0)/ratings.length:null;
-            var g = Store.getGrade(avg);
+            var autoAvg = ratings.length>0?ratings.reduce(function(s,e){return s+e.score;},0)/ratings.length:null;
+            var mdTotal = approved[0].mdTotalScore;
+            var finalScore = (mdTotal !== undefined && mdTotal !== null) ? mdTotal : autoAvg;
+            var g = Store.getGrade(finalScore);
 
             html += '<div class="result-card" style="max-width:700px;">';
             html += '<div class="result-card-header"><div><h4>ผลประเมินที่อนุมัติแล้ว</h4><small>'+approved.length+' รายการ</small></div>';
-            html += '<div class="score-grade-box"><div class="score">'+(avg!==null?avg.toFixed(1):'-')+'</div><div class="grade-badge" style="background:'+g.color+'">'+g.grade+'</div></div></div>';
-            if (avg!==null) {
-                var pct=(avg/5)*100;
+            html += '<div class="score-grade-box"><div class="score">'+(finalScore!==null?finalScore.toFixed(1):'-')+'</div><div class="grade-badge" style="background:'+g.color+'">'+g.grade+'</div></div></div>';
+            if (finalScore!==null) {
+                var pct=(finalScore/5)*100;
                 html += '<div class="score-bar"><div class="score-bar-fill" style="width:'+pct+'%;background:'+g.color+'"></div></div>';
                 html += '<p class="grade-label" style="color:'+g.color+'">ระดับ: '+g.label+' (เกรด '+g.grade+')</p>';
             }
