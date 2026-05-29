@@ -376,22 +376,8 @@ var App = {
         var grouped = {};
         approved.forEach(function(e){if(!grouped[e.employeeId])grouped[e.employeeId]=[];grouped[e.employeeId].push(e);});
 
-        // Get all unique questions
-        var allQuestionIds = [];
-        approved.forEach(function(e){ if(allQuestionIds.indexOf(e.questionId)===-1) allQuestionIds.push(e.questionId); });
-
-        // Build header row
-        var headers = ['รหัส', 'ชื่อ-นามสกุล', 'แผนก', 'ตำแหน่ง'];
-        var questionTexts = [];
-        allQuestionIds.forEach(function(qId) {
-            var q = Store.questions.find(function(q){return q.id===qId;});
-            var text = q ? q.text : 'คำถาม';
-            questionTexts.push(text);
-            headers.push(text);
-        });
-        headers.push('คะแนนรวม');
-        headers.push('เกรด');
-        headers.push('ระดับ');
+        // Build header row (same as summary table)
+        var headers = ['รหัส', 'ชื่อ', 'แผนก', 'ตำแหน่ง', 'คะแนนเฉลี่ย', 'เกรด', 'ระดับ', 'จำนวนข้อ'];
 
         // Build data rows
         var rows = [headers];
@@ -404,33 +390,24 @@ var App = {
             var finalScore = (mdTotal !== undefined && mdTotal !== null) ? mdTotal : autoAvg;
             var g = Store.getGrade(finalScore);
 
-            var row = [
+            rows.push([
                 emp ? emp.id : empId,
                 emp ? emp.name : empId,
                 emp ? (emp.department||'-') : '-',
-                emp ? (emp.position||'-') : '-'
-            ];
-
-            // Add answers for each question
-            allQuestionIds.forEach(function(qId) {
-                var ev = evals.find(function(e){return e.questionId===qId;});
-                if (!ev) { row.push('-'); }
-                else if (ev.type === 'rating') { row.push(ev.score); }
-                else { row.push(ev.answer || '-'); }
-            });
-
-            row.push(finalScore !== null ? finalScore.toFixed(2) : '-');
-            row.push(g.grade);
-            row.push(g.label);
-            rows.push(row);
+                emp ? (emp.position||'-') : '-',
+                finalScore !== null ? parseFloat(finalScore.toFixed(2)) : '-',
+                g.grade,
+                g.label,
+                evals.length
+            ]);
         });
 
-        // Generate Excel XML (compatible with Excel without library)
+        // Generate Excel XML
         var xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
         xml += '<?mso-application progid="Excel.Sheet"?>\n';
         xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n';
         xml += '<Styles><Style ss:ID="header"><Font ss:Bold="1"/><Interior ss:Color="#E8EAF6" ss:Pattern="Solid"/></Style></Styles>\n';
-        xml += '<Worksheet ss:Name="สรุปผลประเมิน"><Table>\n';
+        xml += '<Worksheet ss:Name="สรุปเกรด"><Table>\n';
 
         rows.forEach(function(row, rowIdx) {
             xml += '<Row>';
@@ -451,7 +428,7 @@ var App = {
         var a = document.createElement('a');
         a.href = url;
         var date = new Date().toISOString().substring(0,10);
-        a.download = 'สรุปผลประเมิน_' + date + '.xls';
+        a.download = 'สรุปเกรด_' + date + '.xls';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
