@@ -1117,3 +1117,78 @@ body {
         min-width: 100%;
     }
 }
+
+/* Department Charts */
+.chart-section {
+    margin-top: 2rem;
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.chart-section h3 {
+    color: #1a237e;
+    margin-bottom: 1.5rem;
+}
+
+.dept-charts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.dept-chart-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.25rem;
+    border: 1px solid #e8eaf6;
+}
+
+.dept-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.dept-chart-header h4 {
+    color: #1a237e;
+    font-size: 1.1rem;
+}
+
+.dept-chart-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.6rem;
+}
+
+.dept-chart-label {
+    font-size: 0.8rem;
+    color: #666;
+    min-width: 80px;
+}
+
+.dept-bar-container {
+    flex: 1;
+    height: 20px;
+    background: #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.dept-bar {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.5s ease;
+    min-width: 2px;
+}
+
+.dept-chart-value {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #333;
+    min-width: 45px;
+    text-align: right;
+}

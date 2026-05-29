@@ -254,15 +254,91 @@ var App = {
         var emps = Store.getEmployees();
         var mgrs = Store.getManagers();
         var totalQ = Store.questions.length;
-        return '<div class="section active"><div class="container">' +
+        var approved = Store.evaluations.filter(function(e){return e.status==='approved';});
+
+        var html = '<div class="section active"><div class="container">' +
             '<h2 class="section-title">แดชบอร์ด Admin</h2>' +
-            '<div class="workflow-info"><h4>📋 หน้าที่ของ Admin</h4><p>จัดการผู้ใช้, ตั้งคำถามประเมิน, กำหนดเกณฑ์ตัดเกรด (ไม่สามารถดูคะแนนประเมินได้)</p></div>' +
+            '<div class="workflow-info"><h4>📋 หน้าที่ของ Admin</h4><p>จัดการผู้ใช้, ตั้งคำถามประเมิน, กำหนดเกณฑ์ตัดเกรด</p></div>' +
             '<div class="stats-grid">' +
             '<div class="stat-card"><div class="stat-icon">👥</div><div class="stat-info"><h3>' + emps.length + '</h3><p>พนักงาน</p></div></div>' +
             '<div class="stat-card"><div class="stat-icon">👔</div><div class="stat-info"><h3>' + mgrs.length + '</h3><p>หัวหน้าแผนก</p></div></div>' +
             '<div class="stat-card"><div class="stat-icon">❓</div><div class="stat-info"><h3>' + totalQ + '</h3><p>คำถามทั้งหมด</p></div></div>' +
             '<div class="stat-card"><div class="stat-icon">📊</div><div class="stat-info"><h3>' + Store.gradeRules.length + '</h3><p>เกณฑ์ตัดเกรด</p></div></div>' +
-            '</div></div></div>';
+            '</div>';
+
+        // Department chart section
+        var departments = {};
+        Store.users.filter(function(u){return u.role==='employee'||u.role==='manager';}).forEach(function(u) {
+            if (u.department) {
+                if (!departments[u.department]) departments[u.department] = {total:0, evaluated:0, avgScore:0, scores:[]};
+                departments[u.department].total++;
+            }
+        });
+
+        // Calculate scores per department
+        var groupedByEmp = {};
+        approved.forEach(function(e){if(!groupedByEmp[e.employeeId])groupedByEmp[e.employeeId]=[];groupedByEmp[e.employeeId].push(e);});
+        Object.keys(groupedByEmp).forEach(function(empId) {
+            var user = Store.users.find(function(u){return u.id===empId;});
+            if (!user || !user.department || !departments[user.department]) return;
+            var evals = groupedByEmp[empId];
+            var ratings = evals.filter(function(e){return e.type==='rating';});
+            var autoAvg = ratings.length>0 ? ratings.reduce(function(s,e){return s+e.score;},0)/ratings.length : null;
+            var mdTotal = evals[0].mdTotalScore;
+            var finalScore = (mdTotal !== undefined && mdTotal !== null) ? mdTotal : autoAvg;
+            if (finalScore !== null) {
+                departments[user.department].evaluated++;
+                departments[user.department].scores.push(finalScore);
+            }
+        });
+
+        // Calculate averages
+        Object.keys(departments).forEach(function(dept) {
+            var d = departments[dept];
+            d.avgScore = d.scores.length > 0 ? d.scores.reduce(function(s,v){return s+v;},0)/d.scores.length : 0;
+        });
+
+        // Find max for chart scaling
+        var maxTotal = Math.max.apply(null, Object.keys(departments).map(function(d){return departments[d].total;})) || 1;
+
+        html += '<div class="chart-section"><h3>📊 สรุปแต่ละแผนก</h3>';
+        html += '<div class="dept-charts">';
+
+        Object.keys(departments).forEach(function(dept) {
+            var d = departments[dept];
+            var g = Store.getGrade(d.avgScore);
+            var barWidth = (d.total / maxTotal) * 100;
+            var scoreBarWidth = (d.avgScore / 5) * 100;
+
+            html += '<div class="dept-chart-card">';
+            html += '<div class="dept-chart-header"><h4>'+dept+'</h4>';
+            if (d.scores.length > 0) {
+                html += '<span class="grade-badge-sm" style="background:'+g.color+'">'+g.grade+'</span>';
+            }
+            html += '</div>';
+
+            // Staff count bar
+            html += '<div class="dept-chart-row"><span class="dept-chart-label">จำนวนคน</span>';
+            html += '<div class="dept-bar-container"><div class="dept-bar" style="width:'+barWidth+'%;background:#3f51b5;"></div></div>';
+            html += '<span class="dept-chart-value">'+d.total+'</span></div>';
+
+            // Evaluated count bar
+            html += '<div class="dept-chart-row"><span class="dept-chart-label">ประเมินแล้ว</span>';
+            var evalWidth = d.total > 0 ? (d.evaluated / d.total) * 100 : 0;
+            html += '<div class="dept-bar-container"><div class="dept-bar" style="width:'+evalWidth+'%;background:#43a047;"></div></div>';
+            html += '<span class="dept-chart-value">'+d.evaluated+'/'+d.total+'</span></div>';
+
+            // Average score bar
+            html += '<div class="dept-chart-row"><span class="dept-chart-label">คะแนนเฉลี่ย</span>';
+            html += '<div class="dept-bar-container"><div class="dept-bar" style="width:'+scoreBarWidth+'%;background:'+(d.scores.length>0?g.color:'#e0e0e0')+';"></div></div>';
+            html += '<span class="dept-chart-value">'+(d.scores.length>0?d.avgScore.toFixed(1):'-')+'/5</span></div>';
+
+            html += '</div>';
+        });
+
+        html += '</div></div>';
+        html += '</div></div>';
+        return html;
     },
 
     // ==================== Admin: Grading (no scores shown) ====================
