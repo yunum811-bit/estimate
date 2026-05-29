@@ -194,7 +194,8 @@ var App = {
         } else if (role === 'manager') {
             links = [
                 { page: 'mgr-dashboard', label: 'แดชบอร์ด' },
-                { page: 'mgr-evaluate', label: 'ทำแบบประเมิน' },
+                { page: 'mgr-self-eval', label: 'ประเมินตัวเอง' },
+                { page: 'mgr-evaluate', label: 'ประเมินพนักงาน' },
                 { page: 'mgr-review', label: 'ตรวจสอบ/ส่ง MD' },
                 { page: 'mgr-results', label: 'ผลประเมินแผนก' }
             ];
@@ -242,6 +243,7 @@ var App = {
             case 'md-approve': content.innerHTML = this.renderMdApprove(); this.bindMdApprove(); break;
             case 'md-results': content.innerHTML = this.renderMdResults(); break;
             case 'mgr-dashboard': content.innerHTML = this.renderMgrDashboard(); break;
+            case 'mgr-self-eval': content.innerHTML = this.renderMgrSelfEval(); this.bindMgrSelfEval(); break;
             case 'mgr-evaluate': content.innerHTML = this.renderMgrEvaluate(); this.bindMgrEvaluate(); break;
             case 'mgr-review': content.innerHTML = this.renderMgrReview(); this.bindMgrReview(); break;
             case 'mgr-results': content.innerHTML = this.renderMgrResults(); break;
@@ -481,7 +483,8 @@ var App = {
             '<option value="dropdown">📋 Dropdown</option>' +
             '</select></div>' +
             '<div class="form-group"><label>กำหนดให้</label><select id="q-target"><option value="all">ทุกคน</option>';
-        emps.forEach(function(e) { html += '<option value="'+e.id+'">'+e.name+'</option>'; });
+        emps.forEach(function(e) { html += '<option value="'+e.id+'">'+e.name+' (พนักงาน)</option>'; });
+        Store.getManagers().forEach(function(m) { html += '<option value="'+m.id+'">'+m.name+' (หัวหน้า)</option>'; });
         html += '</select></div>' +
             '<div class="form-group"><label>จำเป็นต้องตอบ</label><select id="q-required"><option value="yes">ใช่</option><option value="no">ไม่</option></select></div>' +
             '</div>' +
@@ -903,6 +906,128 @@ var App = {
             '<div class="stat-card"><div class="stat-icon">📤</div><div class="stat-info"><h3>'+reviewed+'</h3><p>ส่ง MD แล้ว</p></div></div>' +
             '<div class="stat-card"><div class="stat-icon">✅</div><div class="stat-info"><h3>'+approved+'</h3><p>อนุมัติแล้ว</p></div></div>' +
             '</div></div></div>';
+    },
+
+    // ==================== Manager: Self Evaluation ====================
+    renderMgrSelfEval: function() {
+        var mgrId = this.currentUser.id;
+        var myQuestions = Store.getQuestionsForEmployee(mgrId);
+        var answeredIds = Store.evaluations.filter(function(e){return e.employeeId===mgrId;}).map(function(e){return e.questionId;});
+        var unanswered = myQuestions.filter(function(q){return answeredIds.indexOf(q.id)===-1;});
+
+        var html = '<div class="section active"><div class="container"><h2 class="section-title">📝 ประเมินตัวเอง</h2>';
+
+        // Status
+        var myEvals = Store.evaluations.filter(function(e){return e.employeeId===mgrId;});
+        if (myEvals.length > 0) {
+            var statusCounts = {submitted:0, reviewed:0, approved:0};
+            myEvals.forEach(function(e){if(statusCounts[e.status]!==undefined)statusCounts[e.status]++;});
+            html += '<div class="workflow-info"><h4>สถานะการประเมินตัวเอง</h4><div class="status-summary">';
+            html += '<span class="badge badge-pending">📥 รอตรวจ: '+statusCounts.submitted+'</span> ';
+            html += '<span class="badge badge-info">📤 ส่ง MD แล้ว: '+statusCounts.reviewed+'</span> ';
+            html += '<span class="badge badge-evaluated">✅ อนุมัติ: '+statusCounts.approved+'</span>';
+            html += '</div></div>';
+        }
+
+        if (unanswered.length === 0) {
+            html += '<p class="empty-state">🎉 คุณตอบคำถามครบทุกข้อแล้ว!</p>';
+        } else {
+            html += '<p style="margin-bottom:1rem;color:#666;">คุณมี <strong>'+unanswered.length+'</strong> คำถามที่ต้องตอบ</p>';
+            html += '<form id="mgr-self-eval-form" class="eval-categories">';
+            unanswered.forEach(function(q, idx) {
+                var isReq = q.required !== 'no';
+                html += '<div class="eval-category"><h3>คำถามที่ '+(idx+1)+(isReq?' <span class="required">*</span>':'')+'</h3>';
+                html += '<p class="question-text-display">'+q.text+'</p>';
+                if (q.description) html += '<p class="question-desc">'+q.description+'</p>';
+
+                if (q.type === 'rating') {
+                    html += '<div class="rating-group">';
+                    var labels = {5:'ดีเยี่ยม',4:'ดี',3:'ปานกลาง',2:'ต้องปรับปรุง',1:'ไม่ผ่าน'};
+                    for (var i=5;i>=1;i--) html += '<label class="rating-label"><input type="radio" name="q_'+q.id+'" value="'+i+'"'+(isReq?' required':'')+'> '+labels[i]+' ('+i+')</label>';
+                    html += '</div>';
+                } else if (q.type === 'text') {
+                    html += '<input type="text" name="q_'+q.id+'" class="text-answer" placeholder="พิมพ์คำตอบ..."'+(isReq?' required':'')+'>';
+                } else if (q.type === 'paragraph') {
+                    html += '<textarea name="q_'+q.id+'" rows="4" class="text-answer" placeholder="พิมพ์คำตอบ..."'+(isReq?' required':'')+'></textarea>';
+                } else if (q.type === 'multiple_choice') {
+                    html += '<div class="choice-group">';
+                    (q.options||[]).forEach(function(opt) { html += '<label class="choice-label"><input type="radio" name="q_'+q.id+'" value="'+opt+'"'+(isReq?' required':'')+'> '+opt+'</label>'; });
+                    html += '</div>';
+                } else if (q.type === 'checkbox') {
+                    html += '<div class="choice-group">';
+                    (q.options||[]).forEach(function(opt) { html += '<label class="choice-label"><input type="checkbox" name="q_'+q.id+'" value="'+opt+'"> '+opt+'</label>'; });
+                    html += '</div>';
+                } else if (q.type === 'dropdown') {
+                    html += '<select name="q_'+q.id+'" class="text-answer"'+(isReq?' required':'')+'><option value="">-- เลือก --</option>';
+                    (q.options||[]).forEach(function(opt) { html += '<option value="'+opt+'">'+opt+'</option>'; });
+                    html += '</select>';
+                }
+                html += '</div>';
+            });
+            html += '<div class="form-actions"><button type="submit" class="btn btn-primary">ส่งแบบประเมินตัวเอง</button></div></form>';
+        }
+        html += '</div></div>';
+        return html;
+    },
+
+    bindMgrSelfEval: function() {
+        var form = document.getElementById('mgr-self-eval-form');
+        if (!form) return;
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            App.submitMgrSelfEval();
+        });
+    },
+
+    submitMgrSelfEval: function() {
+        var mgrId = this.currentUser.id;
+        var myQuestions = Store.getQuestionsForEmployee(mgrId);
+        var answeredIds = Store.evaluations.filter(function(e){return e.employeeId===mgrId;}).map(function(e){return e.questionId;});
+        var unanswered = myQuestions.filter(function(q){return answeredIds.indexOf(q.id)===-1;});
+
+        for (var i=0; i<unanswered.length; i++) {
+            var q = unanswered[i];
+            var isReq = q.required !== 'no';
+            var evalEntry = {
+                id: 'E'+Date.now()+Math.random().toString(36).substring(2,6),
+                employeeId: mgrId, questionId: q.id, type: q.type,
+                status: 'reviewed', date: new Date().toISOString(),
+                evaluatedBy: mgrId, isSelfEval: true
+            };
+
+            if (q.type === 'rating') {
+                var sel = document.querySelector('input[name="q_'+q.id+'"]:checked');
+                if (!sel && isReq) { showToast('กรุณาตอบคำถามที่จำเป็น','error'); return; }
+                if (sel) evalEntry.score = parseInt(sel.value);
+                else evalEntry.answer = '-';
+            } else if (q.type === 'multiple_choice') {
+                var chosen = document.querySelector('input[name="q_'+q.id+'"]:checked');
+                if (!chosen && isReq) { showToast('กรุณาตอบคำถามที่จำเป็น','error'); return; }
+                evalEntry.answer = chosen ? chosen.value : '-';
+            } else if (q.type === 'checkbox') {
+                var checks = document.querySelectorAll('input[name="q_'+q.id+'"]:checked');
+                var vals = []; checks.forEach(function(c){vals.push(c.value);});
+                if (vals.length === 0 && isReq) { showToast('กรุณาตอบคำถามที่จำเป็น','error'); return; }
+                evalEntry.answer = vals.length > 0 ? vals.join(', ') : '-';
+            } else if (q.type === 'dropdown') {
+                var dd = document.querySelector('select[name="q_'+q.id+'"]');
+                if ((!dd || !dd.value) && isReq) { showToast('กรุณาตอบคำถามที่จำเป็น','error'); return; }
+                evalEntry.answer = dd ? dd.value : '-';
+            } else if (q.type === 'text') {
+                var inp = document.querySelector('input[name="q_'+q.id+'"]');
+                if ((!inp || !inp.value.trim()) && isReq) { showToast('กรุณาตอบคำถามที่จำเป็น','error'); return; }
+                evalEntry.answer = inp ? inp.value.trim() : '-';
+            } else {
+                var ta = document.querySelector('textarea[name="q_'+q.id+'"]');
+                if ((!ta || !ta.value.trim()) && isReq) { showToast('กรุณาตอบคำถามที่จำเป็น','error'); return; }
+                evalEntry.answer = ta ? ta.value.trim() : '-';
+            }
+
+            Store.evaluations.push(evalEntry);
+        }
+        Store.save();
+        showToast('ส่งแบบประเมินตัวเองสำเร็จ! ส่งให้ MD อนุมัติแล้ว','success');
+        this.render('mgr-self-eval'); this.bindMgrSelfEval();
     },
 
     // ==================== Manager: Evaluate (ทำแบบประเมินพนักงานในแผนก) ====================
