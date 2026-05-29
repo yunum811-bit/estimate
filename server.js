@@ -16,8 +16,21 @@ server.use(jsonServer.bodyParser);
 server.post('/save-all', function(req, res) {
     try {
         var newDb = req.body;
+
+        // Auto backup before overwrite
+        var backupDir = path.join(__dirname, 'backups');
+        if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir);
+        var timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+        var backupFile = path.join(backupDir, 'db-' + timestamp + '.json');
+        // Keep only last 50 backups
+        var existingBackups = fs.readdirSync(backupDir).filter(function(f){return f.endsWith('.json');}).sort();
+        if (existingBackups.length >= 50) {
+            fs.unlinkSync(path.join(backupDir, existingBackups[0]));
+        }
+        fs.copyFileSync(dbPath, backupFile);
+
+        // Write new data
         fs.writeFileSync(dbPath, JSON.stringify(newDb, null, 2), 'utf8');
-        // Reload router database
         router.db.setState(newDb);
         res.json({ success: true });
     } catch(e) {
