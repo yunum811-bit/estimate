@@ -1066,18 +1066,34 @@ var App = {
     // ==================== Employee: Results ====================
     renderEmpResults: function() {
         var empId = this.currentUser.id;
-        var approved = Store.evaluations.filter(function(e){return e.employeeId===empId && e.status==='approved';});
+        var allMyEvals = Store.evaluations.filter(function(e){return e.employeeId===empId;});
+        var approved = allMyEvals.filter(function(e){return e.status==='approved';});
+        var submitted = allMyEvals.filter(function(e){return e.status==='submitted';});
+        var reviewed = allMyEvals.filter(function(e){return e.status==='reviewed';});
+
         var html = '<div class="section active"><div class="container"><h2 class="section-title">📋 ผลประเมินของฉัน</h2>';
 
-        if (approved.length === 0) {
-            html += '<p class="empty-state">ยังไม่มีผลที่อนุมัติแล้ว (รอ MD อนุมัติ)</p>';
-        } else {
+        if (allMyEvals.length === 0) {
+            html += '<p class="empty-state">ยังไม่มีผลการประเมิน</p>';
+            html += '</div></div>';
+            return html;
+        }
+
+        // Status summary
+        html += '<div class="workflow-info"><h4>สถานะการประเมินของคุณ</h4><div class="status-summary">';
+        html += '<span class="badge badge-pending">📥 รอหัวหน้าตรวจ: '+submitted.length+'</span> ';
+        html += '<span class="badge badge-info">📤 ส่ง MD แล้ว: '+reviewed.length+'</span> ';
+        html += '<span class="badge badge-evaluated">✅ อนุมัติแล้ว: '+approved.length+'</span>';
+        html += '</div></div>';
+
+        // Show approved results with scores
+        if (approved.length > 0) {
             var ratings = approved.filter(function(e){return e.type==='rating';});
             var avg = ratings.length>0?ratings.reduce(function(s,e){return s+e.score;},0)/ratings.length:null;
             var g = Store.getGrade(avg);
 
-            html += '<div class="result-card" style="max-width:600px;">';
-            html += '<div class="result-card-header"><div><h4>สรุปผลประเมิน</h4><small>อนุมัติแล้ว '+approved.length+' รายการ</small></div>';
+            html += '<div class="result-card" style="max-width:700px;">';
+            html += '<div class="result-card-header"><div><h4>ผลประเมินที่อนุมัติแล้ว</h4><small>'+approved.length+' รายการ</small></div>';
             html += '<div class="score-grade-box"><div class="score">'+(avg!==null?avg.toFixed(1):'-')+'</div><div class="grade-badge" style="background:'+g.color+'">'+g.grade+'</div></div></div>';
             if (avg!==null) {
                 var pct=(avg/5)*100;
@@ -1092,6 +1108,20 @@ var App = {
             });
             html += '</div></div>';
         }
+
+        // Show pending items (no scores, just status)
+        if (submitted.length > 0 || reviewed.length > 0) {
+            html += '<div class="result-card" style="max-width:700px;margin-top:1.5rem;">';
+            html += '<div class="result-card-header"><div><h4>⏳ รอดำเนินการ</h4><small>คำตอบที่ส่งไปแล้ว ยังไม่ได้รับการอนุมัติ</small></div></div>';
+            html += '<div class="result-answers">';
+            submitted.concat(reviewed).forEach(function(ev){
+                var q = Store.questions.find(function(q){return q.id===ev.questionId;});
+                var statusLabel = ev.status === 'submitted' ? '<span class="badge badge-pending">รอหัวหน้าตรวจ</span>' : '<span class="badge badge-info">ส่ง MD แล้ว</span>';
+                html += '<div class="result-answer-item"><span class="q-label">'+(q?q.text:'ลบแล้ว')+'</span>'+statusLabel+'</div>';
+            });
+            html += '</div></div>';
+        }
+
         html += '</div></div>';
         return html;
     }
