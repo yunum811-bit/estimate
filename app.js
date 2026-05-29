@@ -409,8 +409,8 @@ var App = {
             '<div class="section-header"><h2 class="section-title">จัดการคำถามประเมิน</h2>' +
             '<button id="add-q-btn" class="btn btn-primary">+ เพิ่มคำถาม</button></div>' +
             '<p class="section-desc">ตั้งคำถามแบบ Google Form — รองรับหลายประเภทคำตอบ</p>';
-        // Add form
-        html += '<div id="add-q-form-wrap" style="display:none;" class="modal-inline">' +
+        // Add form (always visible)
+        html += '<div id="add-q-form-wrap" class="modal-inline">' +
             '<h3>เพิ่มคำถามใหม่</h3><form id="add-q-form">' +
             '<div class="form-group"><label>คำถาม <span class="required">*</span></label><textarea id="q-text" rows="2" required placeholder="พิมพ์คำถาม..."></textarea></div>' +
             '<div class="form-group"><label>คำอธิบาย (ถ้ามี)</label><input type="text" id="q-desc" placeholder="คำอธิบายเพิ่มเติม..."></div>' +
@@ -476,8 +476,8 @@ var App = {
 
     bindMdQuestions: function() {
         document.getElementById('add-q-btn').addEventListener('click', function() {
-            var f = document.getElementById('add-q-form-wrap');
-            f.style.display = f.style.display === 'none' ? 'block' : 'none';
+            document.getElementById('add-q-form-wrap').scrollIntoView({behavior:'smooth'});
+            document.getElementById('q-text').focus();
         });
         document.getElementById('add-q-form').addEventListener('submit', function(e) {
             e.preventDefault(); App.saveQuestion();
