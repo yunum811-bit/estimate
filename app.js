@@ -456,7 +456,7 @@ var App = {
                     html += '</div>';
                 }
                 html += '</div></div>';
-                html += '<button class="btn-delete" onclick="App.deleteQuestion(\''+q.id+'\')">ลบ</button></div>';
+                html += '<div class="question-actions"><button class="btn-edit" onclick="App.editQuestion(\''+q.id+'\')">แก้ไข</button><button class="btn-delete" onclick="App.deleteQuestion(\''+q.id+'\')">ลบ</button></div></div>';
             });
             html += '</div>';
         }
