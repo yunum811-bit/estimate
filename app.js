@@ -89,7 +89,15 @@ const Store = {
     },
 
     _defaultWeights() {
-        return { kpi: 40, questions: 40, attendance: 20 };
+        return {
+            kpi: 40, questions: 40, attendance: 20,
+            kpiTitle: 'KPI ของตัวเอง',
+            questionsTitle: 'แบบประเมินตามคำถาม',
+            attendanceTitle: 'การขาด ลา มาสาย',
+            lateDeduct: 2,
+            absentDeduct: 5,
+            leaveDeduct: 1
+        };
     },
 
     getNextId(prefix) {
@@ -114,6 +122,33 @@ const Store = {
 
     getManagerForDept(dept) {
         return this.users.find(function(u) { return u.role === 'manager' && u.department === dept; });
+    },
+
+    // Calculate section scores for an employee (out of 100)
+    calcSectionScores(empId) {
+        var w = this.sectionWeights || this._defaultWeights();
+        var evals = this.evaluations.filter(function(e){return e.employeeId===empId && e.status==='approved';});
+        if (evals.length === 0) evals = this.evaluations.filter(function(e){return e.employeeId===empId && (e.status==='reviewed'||e.status==='submitted');});
+
+        // KPI score (rating out of 5 -> convert to weight)
+        var kpiEval = evals.find(function(e){return e.type==='kpi';});
+        var kpiScore = kpiEval && kpiEval.score ? (kpiEval.score / 5) * w.kpi : 0;
+
+        // Questions score (average rating out of 5 -> convert to weight)
+        var qEvals = evals.filter(function(e){return e.type==='rating' && e.questionId!=='kpi_self';});
+        var qAvg = qEvals.length > 0 ? qEvals.reduce(function(s,e){return s+e.score;},0)/qEvals.length : 0;
+        var questionsScore = (qAvg / 5) * w.questions;
+
+        // Attendance score (full marks minus deductions)
+        var attEval = evals.find(function(e){return e.type==='attendance';});
+        var attScore = w.attendance;
+        if (attEval) {
+            var deduct = (attEval.late||0) * (w.lateDeduct||2) + (attEval.absent||0) * (w.absentDeduct||5) + (attEval.leave||0) * (w.leaveDeduct||1);
+            attScore = Math.max(0, w.attendance - deduct);
+        }
+
+        var totalScore = kpiScore + questionsScore + attScore;
+        return { kpi: kpiScore, questions: questionsScore, attendance: attScore, total: totalScore, maxKpi: w.kpi, maxQ: w.questions, maxAtt: w.attendance };
     }
 };
 
@@ -354,28 +389,46 @@ var App = {
 
     // ==================== Admin: Section Weights ====================
     renderAdminWeights: function() {
-        var w = Store.sectionWeights || this._defaultWeights();
+        var w = Store.sectionWeights || Store._defaultWeights();
         var total = (w.kpi||0) + (w.questions||0) + (w.attendance||0);
         var html = '<div class="section active"><div class="container"><h2 class="section-title">⚖️ สัดส่วนคะแนน (เต็ม 100)</h2>';
-        html += '<p class="section-desc">กำหนดคะแนนเต็มของแต่ละส่วน รวมกันต้องเท่ากับ 100 คะแนน</p>';
+        html += '<p class="section-desc">กำหนดชื่อหัวข้อ, คะแนนเต็ม, และเกณฑ์หักคะแนนมาสาย/ขาด/ลา</p>';
 
-        html += '<div class="grading-section">';
+        // Current display
+        html += '<div class="grading-section"><h3>สัดส่วนปัจจุบัน</h3>';
         html += '<div class="weights-display">';
-        html += '<div class="weight-card weight-kpi"><div class="weight-icon">🎯</div><div class="weight-info"><h4>ส่วนที่ 1: KPI</h4><span class="weight-value">'+w.kpi+' คะแนน</span></div></div>';
-        html += '<div class="weight-card weight-questions"><div class="weight-icon">📝</div><div class="weight-info"><h4>ส่วนที่ 2: คำถามประเมิน</h4><span class="weight-value">'+w.questions+' คะแนน</span></div></div>';
-        html += '<div class="weight-card weight-attendance"><div class="weight-icon">📅</div><div class="weight-info"><h4>ส่วนที่ 3: ขาด/ลา/มาสาย</h4><span class="weight-value">'+w.attendance+' คะแนน</span></div></div>';
+        html += '<div class="weight-card weight-kpi"><div class="weight-icon">🎯</div><div class="weight-info"><h4>ส่วนที่ 1: '+(w.kpiTitle||'KPI')+'</h4><span class="weight-value">'+w.kpi+' คะแนน</span></div></div>';
+        html += '<div class="weight-card weight-questions"><div class="weight-icon">📝</div><div class="weight-info"><h4>ส่วนที่ 2: '+(w.questionsTitle||'คำถามประเมิน')+'</h4><span class="weight-value">'+w.questions+' คะแนน</span></div></div>';
+        html += '<div class="weight-card weight-attendance"><div class="weight-icon">📅</div><div class="weight-info"><h4>ส่วนที่ 3: '+(w.attendanceTitle||'ขาด/ลา/มาสาย')+'</h4><span class="weight-value">'+w.attendance+' คะแนน</span></div></div>';
         html += '</div>';
-        html += '<p style="text-align:center;margin-top:1rem;font-size:1.1rem;font-weight:700;color:'+(total===100?'#43a047':'#e53935')+';">รวม: '+total+' / 100 คะแนน '+(total===100?'✅':'❌ (ต้องรวมเป็น 100)')+'</p>';
+        html += '<p style="text-align:center;margin-top:1rem;font-size:1.1rem;font-weight:700;color:'+(total===100?'#43a047':'#e53935')+';">รวม: '+total+' / 100 คะแนน '+(total===100?'✅':'❌')+'</p>';
         html += '</div>';
 
-        html += '<div class="grading-section"><h3>แก้ไขสัดส่วน</h3>';
-        html += '<form id="weights-form"><div class="grade-form-row">';
-        html += '<div class="form-group"><label>🎯 ส่วนที่ 1: KPI</label><input type="number" id="w-kpi" min="0" max="100" value="'+w.kpi+'" required class="text-answer"> คะแนน</div>';
-        html += '<div class="form-group"><label>📝 ส่วนที่ 2: คำถามประเมิน</label><input type="number" id="w-questions" min="0" max="100" value="'+w.questions+'" required class="text-answer"> คะแนน</div>';
-        html += '<div class="form-group"><label>📅 ส่วนที่ 3: ขาด/ลา/มาสาย</label><input type="number" id="w-attendance" min="0" max="100" value="'+w.attendance+'" required class="text-answer"> คะแนน</div>';
+        // Edit form
+        html += '<div class="grading-section"><h3>แก้ไขสัดส่วนและหัวข้อ</h3>';
+        html += '<form id="weights-form">';
+        html += '<div class="eval-section-block" style="border-left-color:#1565c0;"><h4 style="color:#1565c0;">ส่วนที่ 1</h4><div class="grade-form-row">';
+        html += '<div class="form-group"><label>ชื่อหัวข้อ</label><input type="text" id="w-kpi-title" value="'+(w.kpiTitle||'KPI ของตัวเอง')+'" class="text-answer"></div>';
+        html += '<div class="form-group"><label>คะแนนเต็ม</label><input type="number" id="w-kpi" min="0" max="100" value="'+w.kpi+'" required class="text-answer"></div>';
+        html += '</div></div>';
+
+        html += '<div class="eval-section-block" style="border-left-color:#7b1fa2;"><h4 style="color:#7b1fa2;">ส่วนที่ 2</h4><div class="grade-form-row">';
+        html += '<div class="form-group"><label>ชื่อหัวข้อ</label><input type="text" id="w-questions-title" value="'+(w.questionsTitle||'แบบประเมินตามคำถาม')+'" class="text-answer"></div>';
+        html += '<div class="form-group"><label>คะแนนเต็ม</label><input type="number" id="w-questions" min="0" max="100" value="'+w.questions+'" required class="text-answer"></div>';
+        html += '</div></div>';
+
+        html += '<div class="eval-section-block" style="border-left-color:#e65100;"><h4 style="color:#e65100;">ส่วนที่ 3</h4><div class="grade-form-row">';
+        html += '<div class="form-group"><label>ชื่อหัวข้อ</label><input type="text" id="w-attendance-title" value="'+(w.attendanceTitle||'การขาด ลา มาสาย')+'" class="text-answer"></div>';
+        html += '<div class="form-group"><label>คะแนนเต็ม</label><input type="number" id="w-attendance" min="0" max="100" value="'+w.attendance+'" required class="text-answer"></div>';
         html += '</div>';
-        html += '<p id="weights-total" style="font-weight:700;margin:0.5rem 0;"></p>';
-        html += '<button type="submit" class="btn btn-primary">บันทึกสัดส่วน</button></form></div>';
+        html += '<h4 style="margin-top:1rem;">เกณฑ์หักคะแนน (ต่อครั้ง/วัน)</h4><div class="grade-form-row">';
+        html += '<div class="form-group"><label>หักต่อครั้งมาสาย</label><input type="number" id="w-late-deduct" min="0" step="0.5" value="'+(w.lateDeduct||2)+'" class="text-answer"> คะแนน</div>';
+        html += '<div class="form-group"><label>หักต่อวันขาดงาน</label><input type="number" id="w-absent-deduct" min="0" step="0.5" value="'+(w.absentDeduct||5)+'" class="text-answer"> คะแนน</div>';
+        html += '<div class="form-group"><label>หักต่อวันลา</label><input type="number" id="w-leave-deduct" min="0" step="0.5" value="'+(w.leaveDeduct||1)+'" class="text-answer"> คะแนน</div>';
+        html += '</div></div>';
+
+        html += '<p id="weights-total" style="font-weight:700;margin:1rem 0;font-size:1.1rem;"></p>';
+        html += '<button type="submit" class="btn btn-primary">บันทึกทั้งหมด</button></form></div>';
 
         html += '</div></div>';
         return html;
@@ -384,8 +437,6 @@ var App = {
     bindAdminWeights: function() {
         var form = document.getElementById('weights-form');
         if (!form) return;
-
-        // Live total calculation
         var inputs = ['w-kpi','w-questions','w-attendance'];
         inputs.forEach(function(id) {
             document.getElementById(id).addEventListener('input', function() {
@@ -395,11 +446,7 @@ var App = {
                 el.style.color = t===100?'#43a047':'#e53935';
             });
         });
-
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            App.saveWeights();
-        });
+        form.addEventListener('submit', function(e) { e.preventDefault(); App.saveWeights(); });
     },
 
     saveWeights: async function() {
@@ -408,7 +455,15 @@ var App = {
         var attendance = parseInt(document.getElementById('w-attendance').value)||0;
         var total = kpi + questions + attendance;
         if (total !== 100) { showToast('สัดส่วนรวมต้องเท่ากับ 100 (ตอนนี้ = '+total+')','error'); return; }
-        Store.sectionWeights = { kpi: kpi, questions: questions, attendance: attendance };
+        Store.sectionWeights = {
+            kpi: kpi, questions: questions, attendance: attendance,
+            kpiTitle: document.getElementById('w-kpi-title').value.trim() || 'KPI ของตัวเอง',
+            questionsTitle: document.getElementById('w-questions-title').value.trim() || 'แบบประเมินตามคำถาม',
+            attendanceTitle: document.getElementById('w-attendance-title').value.trim() || 'การขาด ลา มาสาย',
+            lateDeduct: parseFloat(document.getElementById('w-late-deduct').value)||2,
+            absentDeduct: parseFloat(document.getElementById('w-absent-deduct').value)||5,
+            leaveDeduct: parseFloat(document.getElementById('w-leave-deduct').value)||1
+        };
         await Store.save();
         showToast('บันทึกสัดส่วนคะแนนสำเร็จ','success');
         this.render('admin-weights'); this.bindAdminWeights();
@@ -453,29 +508,27 @@ var App = {
             html += '<p class="empty-state">ยังไม่มีผลที่ MD อนุมัติ</p>';
         } else {
             // Summary table
-            html += '<div class="grading-section"><h3>ตารางสรุปเกรด</h3>';
-            html += '<table class="data-table"><thead><tr><th>รหัส</th><th>ชื่อ</th><th>แผนก</th><th>ตำแหน่ง</th><th>คะแนนเฉลี่ย</th><th>เกรด</th><th>ระดับ</th><th>จำนวนข้อ</th></tr></thead><tbody>';
+            var w = Store.sectionWeights || Store._defaultWeights();
+            html += '<div class="grading-section"><h3>ตารางสรุปคะแนน</h3>';
+            html += '<table class="data-table"><thead><tr><th>รหัส</th><th>ชื่อ</th><th>แผนก</th><th>'+(w.kpiTitle||'KPI')+'<br><small>/'+w.kpi+'</small></th><th>'+(w.questionsTitle||'คำถาม')+'<br><small>/'+w.questions+'</small></th><th>'+(w.attendanceTitle||'ขาด/ลา/สาย')+'<br><small>/'+w.attendance+'</small></th><th>รวม<br><small>/100</small></th><th>เกรด</th></tr></thead><tbody>';
             var grouped = {};
             approved.forEach(function(e){if(!grouped[e.employeeId])grouped[e.employeeId]=[];grouped[e.employeeId].push(e);});
 
             Object.keys(grouped).forEach(function(empId) {
                 var emp = Store.users.find(function(u){return u.id===empId;});
-                var evals = grouped[empId];
-                var ratings = evals.filter(function(e){return e.type==='rating';});
-                var autoAvg = ratings.length>0 ? ratings.reduce(function(s,e){return s+e.score;},0)/ratings.length : null;
-                // Use MD total score if set, otherwise use auto average
-                var mdTotal = evals[0].mdTotalScore;
-                var finalScore = (mdTotal !== undefined && mdTotal !== null) ? mdTotal : autoAvg;
-                var g = Store.getGrade(finalScore);
+                var scores = Store.calcSectionScores(empId);
+                var mdTotal = grouped[empId][0].mdTotalScore;
+                var finalTotal = (mdTotal !== undefined && mdTotal !== null) ? (mdTotal/5)*100 : scores.total;
+                var g = Store.getGrade(finalTotal/20); // convert 100-scale to 5-scale for grade
                 html += '<tr>';
                 html += '<td>'+(emp?emp.id:empId)+'</td>';
                 html += '<td><strong>'+(emp?emp.name:empId)+'</strong></td>';
                 html += '<td>'+(emp?emp.department||'-':'-')+'</td>';
-                html += '<td>'+(emp?emp.position||'-':'-')+'</td>';
-                html += '<td>'+(finalScore!==null?finalScore.toFixed(2):'-')+'</td>';
-                html += '<td><span class="grade-badge-sm" style="background:'+g.color+'">'+g.grade+'</span></td>';
-                html += '<td>'+g.label+'</td>';
-                html += '<td>'+evals.length+'</td>';
+                html += '<td>'+scores.kpi.toFixed(1)+'</td>';
+                html += '<td>'+scores.questions.toFixed(1)+'</td>';
+                html += '<td>'+scores.attendance.toFixed(1)+'</td>';
+                html += '<td><strong>'+finalTotal.toFixed(1)+'</strong></td>';
+                html += '<td><span class="grade-badge-sm" style="background:'+g.color+'">'+g.grade+'</span> '+g.label+'</td>';
                 html += '</tr>';
             });
             html += '</tbody></table></div>';
@@ -1090,13 +1143,20 @@ var App = {
     },
 
     rejectEmployee: function(empId) {
-        var reason = prompt('เหตุผลที่ส่งกลับ:');
+        var reason = prompt('เหตุผลที่ส่งกลับ (พนักงานจะต้องทำประเมินใหม่):');
         if (reason === null) return;
-        Store.evaluations.forEach(function(e) {
-            if (e.employeeId === empId && e.status === 'reviewed') { e.status = 'submitted'; e.rejectReason = reason; }
+        // Remove all evaluations for this employee so they can redo
+        Store.evaluations = Store.evaluations.filter(function(e) {
+            return !(e.employeeId === empId && e.status === 'reviewed');
+        });
+        // Store reject reason for reference
+        Store.evaluations.push({
+            id: 'REJ'+Date.now(),
+            employeeId: empId, type: 'reject_notice', questionId: 'system',
+            answer: reason, status: 'rejected', date: new Date().toISOString()
         });
         Store.save();
-        showToast('ส่งกลับให้หัวหน้าแผนกแล้ว','info');
+        showToast('ส่งกลับแล้ว — พนักงานจะต้องทำประเมินใหม่','info');
         this.render('md-approve'); this.bindMdApprove();
     },
 
@@ -1622,8 +1682,15 @@ var App = {
 
         var html = '<div class="section active"><div class="container"><h2 class="section-title">📝 ทำแบบประเมิน</h2>';
 
+        // Check for reject notice
+        var rejectNotice = Store.evaluations.filter(function(e){return e.employeeId===empId && e.status==='rejected';});
+        if (rejectNotice.length > 0) {
+            var lastReject = rejectNotice[rejectNotice.length-1];
+            html += '<div class="reject-reason" style="margin-bottom:1rem;">⚠️ <strong>MD ส่งกลับให้ทำใหม่:</strong> '+(lastReject.answer||'ไม่ระบุเหตุผล')+'<br><small>กรุณาทำแบบประเมินใหม่อีกครั้ง</small></div>';
+        }
+
         // Status
-        var myEvals = Store.evaluations.filter(function(e){return e.employeeId===empId;});
+        var myEvals = Store.evaluations.filter(function(e){return e.employeeId===empId && e.type!=='reject_notice';});
         if (myEvals.length > 0) {
             var statusCounts = {submitted:0, reviewed:0, approved:0};
             myEvals.forEach(function(e){if(statusCounts[e.status]!==undefined)statusCounts[e.status]++;});
