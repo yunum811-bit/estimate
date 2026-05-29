@@ -1084,6 +1084,19 @@ var App = {
 
                 if (evals[0].managerComment) html += '<p class="mgr-comment"><strong>ความเห็นหัวหน้า:</strong> '+evals[0].managerComment+'</p>';
 
+                // Section scores breakdown
+                var secScores = Store.calcSectionScores(empId);
+                var w = Store.sectionWeights || Store._defaultWeights();
+                html += '<div class="section-scores-panel">';
+                html += '<h4>📊 คะแนนแยกตามส่วน</h4>';
+                html += '<div class="section-scores-grid">';
+                html += '<div class="sec-score-item sec-score-kpi"><span class="sec-score-label">🎯 '+(w.kpiTitle||'KPI')+'</span><span class="sec-score-value">'+secScores.kpi.toFixed(1)+' / '+w.kpi+'</span><div class="sec-score-bar"><div class="sec-score-fill" style="width:'+(w.kpi>0?(secScores.kpi/w.kpi)*100:0)+'%;background:#0d47a1;"></div></div></div>';
+                html += '<div class="sec-score-item sec-score-q"><span class="sec-score-label">📝 '+(w.questionsTitle||'คำถาม')+'</span><span class="sec-score-value">'+secScores.questions.toFixed(1)+' / '+w.questions+'</span><div class="sec-score-bar"><div class="sec-score-fill" style="width:'+(w.questions>0?(secScores.questions/w.questions)*100:0)+'%;background:#4a148c;"></div></div></div>';
+                html += '<div class="sec-score-item sec-score-att"><span class="sec-score-label">📅 '+(w.attendanceTitle||'ขาด/ลา/สาย')+'</span><span class="sec-score-value">'+secScores.attendance.toFixed(1)+' / '+w.attendance+'</span><div class="sec-score-bar"><div class="sec-score-fill" style="width:'+(w.attendance>0?(secScores.attendance/w.attendance)*100:0)+'%;background:#bf360c;"></div></div></div>';
+                html += '</div>';
+                html += '<div class="sec-score-total"><strong>คะแนนรวมอัตโนมัติ: '+secScores.total.toFixed(1)+' / 100</strong></div>';
+                html += '</div>';
+
                 // Total score (MD can override)
                 var existingTotal = evals[0].mdTotalScore;
                 var autoTotal = avg !== null ? avg.toFixed(2) : '';
@@ -1221,9 +1234,23 @@ var App = {
                 var mdTotal = evals[0].mdTotalScore;
                 var finalScore = (mdTotal !== undefined && mdTotal !== null) ? mdTotal : autoAvg;
                 var g = Store.getGrade(finalScore);
+                var secScores = Store.calcSectionScores(empId);
+                var w = Store.sectionWeights || Store._defaultWeights();
+
                 html += '<div class="result-card"><div class="result-card-header"><div><h4>'+(emp?emp.name:empId)+'</h4><small>'+(emp?(emp.department+' - '+(emp.position||'')):'')+'</small></div>';
                 html += '<div class="score-grade-box"><div class="score">'+(finalScore!==null?finalScore.toFixed(1):'-')+'</div><div class="grade-badge" style="background:'+g.color+'">'+g.grade+'</div></div></div>';
                 if(finalScore!==null){var pct=(finalScore/5)*100;html+='<div class="score-bar"><div class="score-bar-fill" style="width:'+pct+'%;background:'+g.color+'"></div></div><p class="grade-label" style="color:'+g.color+'">'+g.label+(mdTotal!==null&&mdTotal!==undefined?' (MD กำหนด)':'')+'</p>';}
+
+                // Section scores
+                html += '<div class="section-scores-panel">';
+                html += '<div class="section-scores-grid">';
+                html += '<div class="sec-score-item sec-score-kpi"><span class="sec-score-label">🎯 '+(w.kpiTitle||'KPI')+'</span><span class="sec-score-value">'+secScores.kpi.toFixed(1)+'/'+w.kpi+'</span><div class="sec-score-bar"><div class="sec-score-fill" style="width:'+(w.kpi>0?(secScores.kpi/w.kpi)*100:0)+'%;background:#0d47a1;"></div></div></div>';
+                html += '<div class="sec-score-item sec-score-q"><span class="sec-score-label">📝 '+(w.questionsTitle||'คำถาม')+'</span><span class="sec-score-value">'+secScores.questions.toFixed(1)+'/'+w.questions+'</span><div class="sec-score-bar"><div class="sec-score-fill" style="width:'+(w.questions>0?(secScores.questions/w.questions)*100:0)+'%;background:#4a148c;"></div></div></div>';
+                html += '<div class="sec-score-item sec-score-att"><span class="sec-score-label">📅 '+(w.attendanceTitle||'ขาด/ลา/สาย')+'</span><span class="sec-score-value">'+secScores.attendance.toFixed(1)+'/'+w.attendance+'</span><div class="sec-score-bar"><div class="sec-score-fill" style="width:'+(w.attendance>0?(secScores.attendance/w.attendance)*100:0)+'%;background:#bf360c;"></div></div></div>';
+                html += '</div>';
+                html += '<div class="sec-score-total"><strong>รวม: '+secScores.total.toFixed(1)+' / 100</strong></div>';
+                html += '</div>';
+
                 html += '<div class="result-answers">';
                 evals.forEach(function(ev){var q=Store.questions.find(function(q){return q.id===ev.questionId;});var ans=ev.type==='rating'?'<span class="badge badge-evaluated">'+ev.score+'/5</span>':'<em>'+ev.answer+'</em>';html+='<div class="result-answer-item"><span class="q-label">'+(q?q.text:'ลบแล้ว')+'</span>'+ans+'</div>';});
                 html += '</div></div>';

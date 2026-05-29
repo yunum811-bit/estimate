@@ -361,15 +361,6 @@
       "evaluatedBy": "MGR002",
       "isSelfEval": true,
       "rejectReason": "ทบทวนผลประเมิน"
-    },
-    {
-      "id": "REJ1780049427417",
-      "employeeId": "EMP006",
-      "type": "reject_notice",
-      "questionId": "system",
-      "answer": "ทบทวน",
-      "status": "rejected",
-      "date": "2026-05-29T10:10:27.417Z"
     }
   ],
   "gradeRules": [

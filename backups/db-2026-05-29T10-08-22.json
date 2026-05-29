@@ -76,7 +76,7 @@
     {
       "id": "EMP006",
       "name": "test",
-      "role": "manager",
+      "role": "employee",
       "department": "IT",
       "position": "support",
       "password": "1234"
@@ -361,15 +361,6 @@
       "evaluatedBy": "MGR002",
       "isSelfEval": true,
       "rejectReason": "ทบทวนผลประเมิน"
-    },
-    {
-      "id": "REJ1780049427417",
-      "employeeId": "EMP006",
-      "type": "reject_notice",
-      "questionId": "system",
-      "answer": "ทบทวน",
-      "status": "rejected",
-      "date": "2026-05-29T10:10:27.417Z"
     }
   ],
   "gradeRules": [
@@ -430,5 +421,18 @@
       "color": "#e53935"
     }
   ],
-  "sectionWeights": {}
+  "sectionWeights": {
+    "kpi": 60,
+    "questions": 30,
+    "attendance": 10,
+    "kpiTitle": "KPI ของตัวเอง",
+    "questionsTitle": "แบบประเมินตามคำถาม",
+    "attendanceTitle": "การขาด ลา มาสาย",
+    "lateRules": [
+      {
+        "minTimes": 37,
+        "deduct": 5
+      }
+    ]
+  }
 }
