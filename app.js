@@ -334,35 +334,6 @@ var App = {
             });
             html += '</tbody></table></div>';
 
-            // Detail cards
-            html += '<h3 style="margin-top:2rem;color:#1a237e;">รายละเอียดแต่ละคน</h3>';
-            html += '<div class="results-grid">';
-            Object.keys(grouped).forEach(function(empId) {
-                var emp = Store.users.find(function(u){return u.id===empId;});
-                var evals = grouped[empId];
-                var ratings = evals.filter(function(e){return e.type==='rating';});
-                var autoAvg = ratings.length>0 ? ratings.reduce(function(s,e){return s+e.score;},0)/ratings.length : null;
-                var mdTotal = evals[0].mdTotalScore;
-                var finalScore = (mdTotal !== undefined && mdTotal !== null) ? mdTotal : autoAvg;
-                var g = Store.getGrade(finalScore);
-
-                html += '<div class="result-card">';
-                html += '<div class="result-card-header"><div><h4>'+(emp?emp.name:empId)+'</h4><small>'+(emp?(emp.department+' - '+(emp.position||'')):'')+'</small></div>';
-                html += '<div class="score-grade-box"><div class="score">'+(finalScore!==null?finalScore.toFixed(1):'-')+'</div><div class="grade-badge" style="background:'+g.color+'">'+g.grade+'</div></div></div>';
-                if (finalScore!==null) {
-                    var pct=(finalScore/5)*100;
-                    html += '<div class="score-bar"><div class="score-bar-fill" style="width:'+pct+'%;background:'+g.color+'"></div></div>';
-                    html += '<p class="grade-label" style="color:'+g.color+'">'+g.label+(mdTotal!==null&&mdTotal!==undefined?' (MD กำหนด)':' (เฉลี่ยอัตโนมัติ)')+'</p>';
-                }
-                html += '<div class="result-answers">';
-                evals.forEach(function(ev) {
-                    var q = Store.questions.find(function(q){return q.id===ev.questionId;});
-                    var ans = ev.type==='rating' ? '<span class="badge badge-evaluated">'+ev.score+'/5</span>' : '<em>'+(ev.answer||'-')+'</em>';
-                    html += '<div class="result-answer-item"><span class="q-label">'+(q?q.text:'ลบแล้ว')+'</span>'+ans+'</div>';
-                });
-                html += '</div></div>';
-            });
-            html += '</div>';
         }
         html += '</div></div>';
         return html;
@@ -474,7 +445,7 @@ var App = {
             var roleLabel = {md:'MD',manager:'หัวหน้าแผนก',employee:'พนักงาน'}[u.role]||u.role;
             html += '<tr><td>' + u.id + '</td><td>' + u.name + '</td><td><span class="badge badge-role-'+u.role+'">' + roleLabel + '</span></td>' +
                 '<td>' + (u.department||'-') + '</td><td><code>' + (u.password||'1234') + '</code></td>' +
-                '<td class="actions"><button class="btn-delete" onclick="App.deleteUser(\''+u.id+'\')">ลบ</button></td></tr>';
+                '<td class="actions"><button class="btn-edit" onclick="App.editUser(\''+u.id+'\')">แก้ไข</button> <button class="btn-edit" onclick="App.resetPassword(\''+u.id+'\')" style="background:#fff3e0;color:#e65100;">รีเซ็ตรหัส</button> <button class="btn-delete" onclick="App.deleteUser(\''+u.id+'\')">ลบ</button></td></tr>';
         });
         html += '</tbody></table></div>';
         // Add user form
@@ -503,18 +474,39 @@ var App = {
 
     saveUser: async function() {
         var role = document.getElementById('nu-role').value;
-        var prefix = role === 'manager' ? 'MGR' : 'EMP';
-        var user = {
-            id: Store.getNextId(prefix),
-            name: document.getElementById('nu-name').value,
-            role: role,
-            department: document.getElementById('nu-dept').value,
-            position: document.getElementById('nu-position').value || '',
-            password: document.getElementById('nu-password').value || '1234'
-        };
-        Store.users.push(user);
-        await Store.save();
-        showToast('เพิ่มผู้ใช้สำเร็จ (' + user.id + ')', 'success');
+        var name = document.getElementById('nu-name').value;
+        var department = document.getElementById('nu-dept').value;
+        var position = document.getElementById('nu-position').value || '';
+        var password = document.getElementById('nu-password').value || '1234';
+
+        if (this._editingUserId) {
+            // Edit existing user
+            var existing = Store.users.find(function(u){return u.id === App._editingUserId;});
+            if (existing) {
+                existing.name = name;
+                existing.role = role;
+                existing.department = department;
+                existing.position = position;
+                existing.password = password;
+            }
+            this._editingUserId = null;
+            await Store.save();
+            showToast('แก้ไขผู้ใช้สำเร็จ', 'success');
+        } else {
+            // Add new user
+            var prefix = role === 'manager' ? 'MGR' : 'EMP';
+            var user = {
+                id: Store.getNextId(prefix),
+                name: name,
+                role: role,
+                department: department,
+                position: position,
+                password: password
+            };
+            Store.users.push(user);
+            await Store.save();
+            showToast('เพิ่มผู้ใช้สำเร็จ (' + user.id + ')', 'success');
+        }
         this.render('admin-users');
         this.bindMdUsers();
     },
@@ -528,6 +520,39 @@ var App = {
         this.render('admin-users');
         this.bindMdUsers();
         showToast('ลบสำเร็จ', 'info');
+    },
+
+    editUser: function(id) {
+        var user = Store.users.find(function(u){return u.id===id;});
+        if (!user) return;
+        // Show edit form
+        var formContainer = document.getElementById('add-user-form-container');
+        formContainer.style.display = 'block';
+        formContainer.querySelector('h3').textContent = '✏️ แก้ไขผู้ใช้: ' + user.name;
+        document.getElementById('nu-name').value = user.name;
+        document.getElementById('nu-role').value = user.role;
+        document.getElementById('nu-dept').value = user.department || 'IT';
+        document.getElementById('nu-position').value = user.position || '';
+        document.getElementById('nu-password').value = user.password || '1234';
+        // Store editing state
+        this._editingUserId = id;
+        var submitBtn = formContainer.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.textContent = '💾 บันทึกการแก้ไข';
+        formContainer.scrollIntoView({behavior:'smooth'});
+    },
+
+    resetPassword: async function(id) {
+        var newPass = prompt('กำหนดรหัสผ่านใหม่ (ปล่อยว่างใช้ 1234):', '1234');
+        if (newPass === null) return;
+        if (!newPass.trim()) newPass = '1234';
+        var user = Store.users.find(function(u){return u.id===id;});
+        if (user) {
+            user.password = newPass.trim();
+            await Store.save();
+            this.render('admin-users');
+            this.bindMdUsers();
+            showToast('รีเซ็ตรหัสผ่าน ' + id + ' สำเร็จ (รหัสใหม่: ' + newPass.trim() + ')', 'success');
+        }
     },
 
     // ==================== MD: Questions ====================
