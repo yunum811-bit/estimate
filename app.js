@@ -492,18 +492,59 @@ var App = {
             options = raw.split('\n').map(function(s){return s.trim();}).filter(function(s){return s.length > 0;});
             if (options.length < 2) { showToast('กรุณาใส่ตัวเลือกอย่างน้อย 2 ข้อ','error'); return; }
         }
-        Store.questions.push({
-            id: 'Q' + Date.now(),
+
+        var questionData = {
             text: document.getElementById('q-text').value,
             description: document.getElementById('q-desc').value || '',
             type: type,
             options: options,
             target: document.getElementById('q-target').value,
             required: document.getElementById('q-required').value
-        });
+        };
+
+        if (this._editingQuestionId) {
+            // Update existing
+            var idx = Store.questions.findIndex(function(q){return q.id === App._editingQuestionId;});
+            if (idx !== -1) {
+                questionData.id = Store.questions[idx].id;
+                Store.questions[idx] = questionData;
+            }
+            this._editingQuestionId = null;
+            showToast('แก้ไขคำถามสำเร็จ', 'success');
+        } else {
+            // Add new
+            questionData.id = 'Q' + Date.now();
+            Store.questions.push(questionData);
+            showToast('เพิ่มคำถามสำเร็จ', 'success');
+        }
+
         await Store.save();
-        showToast('เพิ่มคำถามสำเร็จ', 'success');
         this.render('admin-questions'); this.bindMdQuestions();
+    },
+
+    editQuestion: function(id) {
+        var q = Store.questions.find(function(item){return item.id === id;});
+        if (!q) return;
+        document.getElementById('q-text').value = q.text;
+        document.getElementById('q-desc').value = q.description || '';
+        document.getElementById('q-type').value = q.type;
+        document.getElementById('q-target').value = q.target;
+        document.getElementById('q-required').value = q.required || 'yes';
+        this.onQuestionTypeChange();
+        if (q.options && q.options.length > 0) {
+            document.getElementById('q-options').value = q.options.join('\n');
+        } else {
+            document.getElementById('q-options').value = '';
+        }
+        // Switch to edit mode
+        this._editingQuestionId = id;
+        var submitBtn = document.querySelector('#add-q-form button[type="submit"]');
+        if (submitBtn) submitBtn.textContent = '💾 บันทึกการแก้ไข';
+        var formWrap = document.getElementById('add-q-form-wrap');
+        if (formWrap) {
+            formWrap.querySelector('h3').textContent = '✏️ แก้ไขคำถาม';
+            formWrap.scrollIntoView({behavior:'smooth'});
+        }
     },
 
     deleteQuestion: async function(id) {

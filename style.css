@@ -620,9 +620,16 @@ body {
     padding: 1.25rem 1.5rem;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
+}
+
+.question-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    flex-shrink: 0;
 }
 
 .question-card-body {
