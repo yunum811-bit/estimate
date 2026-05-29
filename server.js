@@ -1,25 +1,35 @@
 const jsonServer = require('json-server');
 const path = require('path');
+const fs = require('fs');
 
 const server = jsonServer.create();
-const router = jsonServer.router(path.join(__dirname, 'db.json'));
+const dbPath = path.join(__dirname, 'db.json');
+const router = jsonServer.router(dbPath);
 const middlewares = jsonServer.defaults({
-    static: __dirname  // serve index.html, style.css, app.js from same folder
+    static: __dirname
 });
 
-// Use default middlewares (CORS, static files, etc.)
 server.use(middlewares);
 server.use(jsonServer.bodyParser);
 
-// Custom: make "id" field work as string (json-server defaults to numeric id)
-router.db._.id = 'id';
+// Custom endpoint: save entire database at once (prevents duplication)
+server.post('/save-all', function(req, res) {
+    try {
+        var newDb = req.body;
+        fs.writeFileSync(dbPath, JSON.stringify(newDb, null, 2), 'utf8');
+        // Reload router database
+        router.db.setState(newDb);
+        res.json({ success: true });
+    } catch(e) {
+        res.status(500).json({ error: e.message });
+    }
+});
 
 server.use(router);
 
 const PORT = 3000;
 const os = require('os');
 
-// Get local IP for LAN access
 function getLocalIP() {
     const interfaces = os.networkInterfaces();
     for (const name of Object.keys(interfaces)) {

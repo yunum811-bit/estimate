@@ -33,42 +33,26 @@ const Store = {
 
     // Save all data to server (full replace)
     async save() {
-        // Also save to localStorage as backup
+        // Save to localStorage as backup
         localStorage.setItem('users', JSON.stringify(this.users));
         localStorage.setItem('questions', JSON.stringify(this.questions));
         localStorage.setItem('evaluations', JSON.stringify(this.evaluations));
         localStorage.setItem('gradeRules', JSON.stringify(this.gradeRules));
 
         try {
-            // Sync each collection to server
-            await this._syncCollection('users', this.users);
-            await this._syncCollection('questions', this.questions);
-            await this._syncCollection('evaluations', this.evaluations);
-            await this._syncCollection('gradeRules', this.gradeRules);
+            // Write entire db at once via custom endpoint
+            await fetch(API_URL + '/save-all', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    users: this.users,
+                    questions: this.questions,
+                    evaluations: this.evaluations,
+                    gradeRules: this.gradeRules
+                })
+            });
         } catch(e) {
             console.warn('Could not save to server:', e.message);
-        }
-    },
-
-    async _syncCollection(name, data) {
-        // Get current server data
-        var serverData = await fetch(API_URL + '/' + name).then(function(r){return r.json();});
-        var serverIds = serverData.map(function(item){return item.id;});
-        var localIds = data.map(function(item){return item.id;});
-
-        // Delete items not in local
-        for (var i=0; i<serverData.length; i++) {
-            if (localIds.indexOf(serverData[i].id) === -1) {
-                await fetch(API_URL + '/' + name + '/' + serverData[i].id, {method:'DELETE'});
-            }
-        }
-        // Add or update items
-        for (var j=0; j<data.length; j++) {
-            if (serverIds.indexOf(data[j].id) === -1) {
-                await fetch(API_URL + '/' + name, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data[j])});
-            } else {
-                await fetch(API_URL + '/' + name + '/' + data[j].id, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data[j])});
-            }
         }
     },
 
