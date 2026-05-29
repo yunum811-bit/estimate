@@ -421,15 +421,5 @@
       "color": "#e53935"
     }
   ],
-  "sectionWeights": {
-    "kpi": 60,
-    "questions": 30,
-    "attendance": 10,
-    "kpiTitle": "KPI ของตัวเอง",
-    "questionsTitle": "แบบประเมินตามคำถาม",
-    "attendanceTitle": "การขาด ลา มาสาย",
-    "lateDeduct": 37,
-    "absentDeduct": 5,
-    "leaveDeduct": 1
-  }
+  "sectionWeights": {}
 }

@@ -94,9 +94,12 @@ const Store = {
             kpiTitle: 'KPI ของตัวเอง',
             questionsTitle: 'แบบประเมินตามคำถาม',
             attendanceTitle: 'การขาด ลา มาสาย',
-            lateDeduct: 2,
-            absentDeduct: 5,
-            leaveDeduct: 1
+            lateRules: [
+                { minTimes: 37, deduct: 5 },
+                { minTimes: 25, deduct: 3 },
+                { minTimes: 15, deduct: 2 },
+                { minTimes: 5, deduct: 1 }
+            ]
         };
     },
 
@@ -139,11 +142,19 @@ const Store = {
         var qAvg = qEvals.length > 0 ? qEvals.reduce(function(s,e){return s+e.score;},0)/qEvals.length : 0;
         var questionsScore = (qAvg / 5) * w.questions;
 
-        // Attendance score (full marks minus deductions)
+        // Attendance score (full marks minus deductions based on late rules)
         var attEval = evals.find(function(e){return e.type==='attendance';});
         var attScore = w.attendance;
         if (attEval) {
-            var deduct = (attEval.late||0) * (w.lateDeduct||2) + (attEval.absent||0) * (w.absentDeduct||5) + (attEval.leave||0) * (w.leaveDeduct||1);
+            var lateTimes = attEval.late || 0;
+            var deduct = 0;
+            var rules = (w.lateRules || []).sort(function(a,b){return b.minTimes - a.minTimes;});
+            for (var r=0; r<rules.length; r++) {
+                if (lateTimes >= rules[r].minTimes) {
+                    deduct = rules[r].deduct;
+                    break;
+                }
+            }
             attScore = Math.max(0, w.attendance - deduct);
         }
 
@@ -421,10 +432,19 @@ var App = {
         html += '<div class="form-group"><label>ชื่อหัวข้อ</label><input type="text" id="w-attendance-title" value="'+(w.attendanceTitle||'การขาด ลา มาสาย')+'" class="text-answer"></div>';
         html += '<div class="form-group"><label>คะแนนเต็ม</label><input type="number" id="w-attendance" min="0" max="100" value="'+w.attendance+'" required class="text-answer"></div>';
         html += '</div>';
-        html += '<h4 style="margin-top:1rem;">เกณฑ์หักคะแนน (ต่อครั้ง/วัน)</h4><div class="grade-form-row">';
-        html += '<div class="form-group"><label>หักต่อครั้งมาสาย</label><input type="number" id="w-late-deduct" min="0" step="0.5" value="'+(w.lateDeduct||2)+'" class="text-answer"> คะแนน</div>';
-        html += '<div class="form-group"><label>หักต่อวันขาดงาน</label><input type="number" id="w-absent-deduct" min="0" step="0.5" value="'+(w.absentDeduct||5)+'" class="text-answer"> คะแนน</div>';
-        html += '<div class="form-group"><label>หักต่อวันลา</label><input type="number" id="w-leave-deduct" min="0" step="0.5" value="'+(w.leaveDeduct||1)+'" class="text-answer"> คะแนน</div>';
+        html += '<h4 style="margin-top:1rem;">เกณฑ์หักคะแนนมาสาย (ขั้นบันได)</h4>';
+        html += '<p class="section-desc">ถ้ามาสายถึงจำนวนครั้งที่กำหนด จะหักคะแนนตามเกณฑ์ (ถ้าไม่ถึง = ไม่หัก)</p>';
+        html += '<table class="data-table" id="late-rules-table"><thead><tr><th>มาสายตั้งแต่ (ครั้ง)</th><th>หัก (คะแนน)</th><th>ลบ</th></tr></thead><tbody>';
+        var rules = w.lateRules || [];
+        rules.forEach(function(rule, idx) {
+            html += '<tr><td>≥ '+rule.minTimes+' ครั้ง</td><td>'+rule.deduct+' คะแนน</td><td><button class="btn-delete" onclick="App.deleteLateRule('+idx+')">ลบ</button></td></tr>';
+        });
+        if (rules.length === 0) html += '<tr><td colspan="3" class="empty-state">ยังไม่มีเกณฑ์ (ไม่หักคะแนน)</td></tr>';
+        html += '</tbody></table>';
+        html += '<div class="grade-form-row" style="margin-top:1rem;">';
+        html += '<div class="form-group"><label>มาสายตั้งแต่ (ครั้ง)</label><input type="number" id="w-late-min" min="1" value="10" class="text-answer"></div>';
+        html += '<div class="form-group"><label>หัก (คะแนน)</label><input type="number" id="w-late-deduct" min="0.5" step="0.5" value="2" class="text-answer"></div>';
+        html += '<div class="form-group" style="align-self:flex-end;"><button type="button" class="btn btn-primary" onclick="App.addLateRule()">+ เพิ่มเกณฑ์</button></div>';
         html += '</div></div>';
 
         html += '<p id="weights-total" style="font-weight:700;margin:1rem 0;font-size:1.1rem;"></p>';
@@ -455,17 +475,41 @@ var App = {
         var attendance = parseInt(document.getElementById('w-attendance').value)||0;
         var total = kpi + questions + attendance;
         if (total !== 100) { showToast('สัดส่วนรวมต้องเท่ากับ 100 (ตอนนี้ = '+total+')','error'); return; }
+        var existing = Store.sectionWeights || {};
         Store.sectionWeights = {
             kpi: kpi, questions: questions, attendance: attendance,
             kpiTitle: document.getElementById('w-kpi-title').value.trim() || 'KPI ของตัวเอง',
             questionsTitle: document.getElementById('w-questions-title').value.trim() || 'แบบประเมินตามคำถาม',
             attendanceTitle: document.getElementById('w-attendance-title').value.trim() || 'การขาด ลา มาสาย',
-            lateDeduct: parseFloat(document.getElementById('w-late-deduct').value)||2,
-            absentDeduct: parseFloat(document.getElementById('w-absent-deduct').value)||5,
-            leaveDeduct: parseFloat(document.getElementById('w-leave-deduct').value)||1
+            lateRules: existing.lateRules || []
         };
         await Store.save();
         showToast('บันทึกสัดส่วนคะแนนสำเร็จ','success');
+        this.render('admin-weights'); this.bindAdminWeights();
+    },
+
+    addLateRule: async function() {
+        var minTimes = parseInt(document.getElementById('w-late-min').value)||0;
+        var deduct = parseFloat(document.getElementById('w-late-deduct').value)||0;
+        if (minTimes < 1 || deduct <= 0) { showToast('กรุณากรอกจำนวนครั้งและคะแนนหัก','error'); return; }
+        var w = Store.sectionWeights || Store._defaultWeights();
+        if (!w.lateRules) w.lateRules = [];
+        // Check duplicate
+        if (w.lateRules.some(function(r){return r.minTimes===minTimes;})) { showToast('มีเกณฑ์ '+minTimes+' ครั้งอยู่แล้ว','error'); return; }
+        w.lateRules.push({ minTimes: minTimes, deduct: deduct });
+        w.lateRules.sort(function(a,b){return b.minTimes - a.minTimes;});
+        Store.sectionWeights = w;
+        await Store.save();
+        showToast('เพิ่มเกณฑ์สำเร็จ','success');
+        this.render('admin-weights'); this.bindAdminWeights();
+    },
+
+    deleteLateRule: async function(idx) {
+        if (!confirm('ลบเกณฑ์นี้?')) return;
+        var w = Store.sectionWeights || Store._defaultWeights();
+        w.lateRules.splice(idx, 1);
+        Store.sectionWeights = w;
+        await Store.save();
         this.render('admin-weights'); this.bindAdminWeights();
     },
 
