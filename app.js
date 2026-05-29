@@ -16,18 +16,21 @@ const Store = {
                 fetch(API_URL + '/users').then(function(r){return r.json();}),
                 fetch(API_URL + '/questions').then(function(r){return r.json();}),
                 fetch(API_URL + '/evaluations').then(function(r){return r.json();}),
-                fetch(API_URL + '/gradeRules').then(function(r){return r.json();})
+                fetch(API_URL + '/gradeRules').then(function(r){return r.json();}),
+                fetch(API_URL + '/sectionWeights').then(function(r){return r.json();}).catch(function(){return null;})
             ]);
             this.users = res[0];
             this.questions = res[1];
             this.evaluations = res[2];
             this.gradeRules = res[3];
+            this.sectionWeights = res[4] || this._defaultWeights();
         } catch(e) {
             console.warn('Server not available, using localStorage fallback');
             this.users = JSON.parse(localStorage.getItem('users')) || this._defaultUsers();
             this.questions = JSON.parse(localStorage.getItem('questions')) || [];
             this.evaluations = JSON.parse(localStorage.getItem('evaluations')) || [];
             this.gradeRules = JSON.parse(localStorage.getItem('gradeRules')) || this._defaultGrades();
+            this.sectionWeights = JSON.parse(localStorage.getItem('sectionWeights')) || this._defaultWeights();
         }
     },
 
@@ -38,6 +41,7 @@ const Store = {
         localStorage.setItem('questions', JSON.stringify(this.questions));
         localStorage.setItem('evaluations', JSON.stringify(this.evaluations));
         localStorage.setItem('gradeRules', JSON.stringify(this.gradeRules));
+        localStorage.setItem('sectionWeights', JSON.stringify(this.sectionWeights));
 
         try {
             // Write entire db at once via custom endpoint
@@ -48,7 +52,8 @@ const Store = {
                     users: this.users,
                     questions: this.questions,
                     evaluations: this.evaluations,
-                    gradeRules: this.gradeRules
+                    gradeRules: this.gradeRules,
+                    sectionWeights: this.sectionWeights
                 })
             });
         } catch(e) {
@@ -81,6 +86,10 @@ const Store = {
             { id: '6', grade: 'D', label: 'ต้องปรับปรุง', min: 1.5, max: 2.49, color: '#fb8c00' },
             { id: '7', grade: 'F', label: 'ไม่ผ่าน', min: 0, max: 1.49, color: '#e53935' }
         ];
+    },
+
+    _defaultWeights() {
+        return { kpi: 40, questions: 40, attendance: 20 };
     },
 
     getNextId(prefix) {
@@ -182,6 +191,7 @@ var App = {
                 { page: 'admin-dashboard', label: 'แดชบอร์ด' },
                 { page: 'admin-users', label: 'จัดการผู้ใช้' },
                 { page: 'admin-questions', label: 'จัดการคำถาม' },
+                { page: 'admin-weights', label: 'สัดส่วนคะแนน' },
                 { page: 'admin-grading', label: 'ตั้งค่าเกรด' },
                 { page: 'admin-summary', label: 'สรุปผลประเมิน' }
             ];
@@ -235,6 +245,7 @@ var App = {
             case 'admin-users': content.innerHTML = this.renderMdUsers(); this.bindMdUsers(); break;
             case 'admin-questions': content.innerHTML = this.renderMdQuestions(); this.bindMdQuestions(); break;
             case 'admin-grading': content.innerHTML = this.renderAdminGrading(); this.bindMdGrading(); break;
+            case 'admin-weights': content.innerHTML = this.renderAdminWeights(); this.bindAdminWeights(); break;
             case 'admin-summary': content.innerHTML = this.renderAdminSummary(); break;
             case 'md-dashboard': content.innerHTML = this.renderMdDashboard(); break;
             case 'md-approve': content.innerHTML = this.renderMdApprove(); this.bindMdApprove(); break;
@@ -339,6 +350,68 @@ var App = {
         html += '</div></div>';
         html += '</div></div>';
         return html;
+    },
+
+    // ==================== Admin: Section Weights ====================
+    renderAdminWeights: function() {
+        var w = Store.sectionWeights || this._defaultWeights();
+        var total = (w.kpi||0) + (w.questions||0) + (w.attendance||0);
+        var html = '<div class="section active"><div class="container"><h2 class="section-title">⚖️ สัดส่วนคะแนน (เต็ม 100)</h2>';
+        html += '<p class="section-desc">กำหนดคะแนนเต็มของแต่ละส่วน รวมกันต้องเท่ากับ 100 คะแนน</p>';
+
+        html += '<div class="grading-section">';
+        html += '<div class="weights-display">';
+        html += '<div class="weight-card weight-kpi"><div class="weight-icon">🎯</div><div class="weight-info"><h4>ส่วนที่ 1: KPI</h4><span class="weight-value">'+w.kpi+' คะแนน</span></div></div>';
+        html += '<div class="weight-card weight-questions"><div class="weight-icon">📝</div><div class="weight-info"><h4>ส่วนที่ 2: คำถามประเมิน</h4><span class="weight-value">'+w.questions+' คะแนน</span></div></div>';
+        html += '<div class="weight-card weight-attendance"><div class="weight-icon">📅</div><div class="weight-info"><h4>ส่วนที่ 3: ขาด/ลา/มาสาย</h4><span class="weight-value">'+w.attendance+' คะแนน</span></div></div>';
+        html += '</div>';
+        html += '<p style="text-align:center;margin-top:1rem;font-size:1.1rem;font-weight:700;color:'+(total===100?'#43a047':'#e53935')+';">รวม: '+total+' / 100 คะแนน '+(total===100?'✅':'❌ (ต้องรวมเป็น 100)')+'</p>';
+        html += '</div>';
+
+        html += '<div class="grading-section"><h3>แก้ไขสัดส่วน</h3>';
+        html += '<form id="weights-form"><div class="grade-form-row">';
+        html += '<div class="form-group"><label>🎯 ส่วนที่ 1: KPI</label><input type="number" id="w-kpi" min="0" max="100" value="'+w.kpi+'" required class="text-answer"> คะแนน</div>';
+        html += '<div class="form-group"><label>📝 ส่วนที่ 2: คำถามประเมิน</label><input type="number" id="w-questions" min="0" max="100" value="'+w.questions+'" required class="text-answer"> คะแนน</div>';
+        html += '<div class="form-group"><label>📅 ส่วนที่ 3: ขาด/ลา/มาสาย</label><input type="number" id="w-attendance" min="0" max="100" value="'+w.attendance+'" required class="text-answer"> คะแนน</div>';
+        html += '</div>';
+        html += '<p id="weights-total" style="font-weight:700;margin:0.5rem 0;"></p>';
+        html += '<button type="submit" class="btn btn-primary">บันทึกสัดส่วน</button></form></div>';
+
+        html += '</div></div>';
+        return html;
+    },
+
+    bindAdminWeights: function() {
+        var form = document.getElementById('weights-form');
+        if (!form) return;
+
+        // Live total calculation
+        var inputs = ['w-kpi','w-questions','w-attendance'];
+        inputs.forEach(function(id) {
+            document.getElementById(id).addEventListener('input', function() {
+                var t = (parseInt(document.getElementById('w-kpi').value)||0) + (parseInt(document.getElementById('w-questions').value)||0) + (parseInt(document.getElementById('w-attendance').value)||0);
+                var el = document.getElementById('weights-total');
+                el.textContent = 'รวม: ' + t + ' / 100' + (t===100?' ✅':' ❌ ต้องรวมเป็น 100');
+                el.style.color = t===100?'#43a047':'#e53935';
+            });
+        });
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            App.saveWeights();
+        });
+    },
+
+    saveWeights: async function() {
+        var kpi = parseInt(document.getElementById('w-kpi').value)||0;
+        var questions = parseInt(document.getElementById('w-questions').value)||0;
+        var attendance = parseInt(document.getElementById('w-attendance').value)||0;
+        var total = kpi + questions + attendance;
+        if (total !== 100) { showToast('สัดส่วนรวมต้องเท่ากับ 100 (ตอนนี้ = '+total+')','error'); return; }
+        Store.sectionWeights = { kpi: kpi, questions: questions, attendance: attendance };
+        await Store.save();
+        showToast('บันทึกสัดส่วนคะแนนสำเร็จ','success');
+        this.render('admin-weights'); this.bindAdminWeights();
     },
 
     // ==================== Admin: Grading (no scores shown) ====================
@@ -1083,6 +1156,9 @@ var App = {
         var answeredIds = Store.evaluations.filter(function(e){return e.employeeId===mgrId;}).map(function(e){return e.questionId;});
         var unanswered = myQuestions.filter(function(q){return answeredIds.indexOf(q.id)===-1;});
 
+        var kpiSubmitted = Store.evaluations.some(function(e){return e.employeeId===mgrId && e.type==='kpi';});
+        var attendanceSubmitted = Store.evaluations.some(function(e){return e.employeeId===mgrId && e.type==='attendance';});
+
         var html = '<div class="section active"><div class="container"><h2 class="section-title">📝 ประเมินตัวเอง</h2>';
 
         // Status
@@ -1091,27 +1167,48 @@ var App = {
             var statusCounts = {submitted:0, reviewed:0, approved:0};
             myEvals.forEach(function(e){if(statusCounts[e.status]!==undefined)statusCounts[e.status]++;});
             html += '<div class="workflow-info"><h4>สถานะการประเมินตัวเอง</h4><div class="status-summary">';
-            html += '<span class="badge badge-pending">📥 รอตรวจ: '+statusCounts.submitted+'</span> ';
-            html += '<span class="badge badge-info">📤 ส่ง MD แล้ว: '+statusCounts.reviewed+'</span> ';
+            html += '<span class="badge badge-info">📤 ส่ง MD แล้ว: '+(statusCounts.submitted+statusCounts.reviewed)+'</span> ';
             html += '<span class="badge badge-evaluated">✅ อนุมัติ: '+statusCounts.approved+'</span>';
             html += '</div></div>';
         }
 
-        if (unanswered.length === 0) {
-            html += '<p class="empty-state">🎉 คุณตอบคำถามครบทุกข้อแล้ว!</p>';
+        html += '<form id="mgr-self-eval-form">';
+
+        // ส่วนที่ 1: KPI
+        html += '<div class="eval-section-block">';
+        html += '<div class="eval-section-header"><span class="eval-section-num">1</span><h3>KPI ของตัวเอง</h3></div>';
+        if (kpiSubmitted) {
+            html += '<p class="empty-state">✅ คุณส่ง KPI แล้ว</p>';
         } else {
-            html += '<p style="margin-bottom:1rem;color:#666;">คุณมี <strong>'+unanswered.length+'</strong> คำถามที่ต้องตอบ</p>';
-            html += '<form id="mgr-self-eval-form" class="eval-categories">';
+            html += '<p class="section-desc">ระบุเป้าหมายและผลงานของคุณในรอบนี้</p>';
+            html += '<div class="form-group"><label>เป้าหมาย KPI ของคุณ <span class="required">*</span></label>';
+            html += '<textarea id="mgr-kpi-goals" rows="3" class="text-answer" required placeholder="เช่น บริหารทีมให้ปิดโปรเจค 5 งาน..."></textarea></div>';
+            html += '<div class="form-group"><label>ผลงานที่ทำได้ <span class="required">*</span></label>';
+            html += '<textarea id="mgr-kpi-results" rows="3" class="text-answer" required placeholder="เช่น ปิดโปรเจคได้ 6 งาน..."></textarea></div>';
+            html += '<div class="form-group"><label>คะแนน KPI ที่ประเมินตัวเอง (1-5) <span class="required">*</span></label>';
+            html += '<div class="rating-group">';
+            var labels = {5:'ดีเยี่ยม',4:'ดี',3:'ปานกลาง',2:'ต้องปรับปรุง',1:'ไม่ผ่าน'};
+            for (var k=5;k>=1;k--) html += '<label class="rating-label"><input type="radio" name="mgr_kpi_score" value="'+k+'" required> '+labels[k]+' ('+k+')</label>';
+            html += '</div></div>';
+        }
+        html += '</div>';
+
+        // ส่วนที่ 2: คำถามบังคับ
+        html += '<div class="eval-section-block">';
+        html += '<div class="eval-section-header"><span class="eval-section-num">2</span><h3>แบบประเมินตามคำถาม</h3></div>';
+        if (unanswered.length === 0) {
+            html += '<p class="empty-state">✅ คุณตอบคำถามครบทุกข้อแล้ว</p>';
+        } else {
+            html += '<p class="section-desc">ตอบคำถามที่กำหนดให้ ('+unanswered.length+' ข้อ)</p>';
             unanswered.forEach(function(q, idx) {
                 var isReq = q.required !== 'no';
-                html += '<div class="eval-category"><h3>คำถามที่ '+(idx+1)+(isReq?' <span class="required">*</span>':'')+'</h3>';
+                html += '<div class="eval-category"><h4>ข้อ '+(idx+1)+(isReq?' <span class="required">*</span>':'')+'</h4>';
                 html += '<p class="question-text-display">'+q.text+'</p>';
                 if (q.description) html += '<p class="question-desc">'+q.description+'</p>';
-
                 if (q.type === 'rating') {
                     html += '<div class="rating-group">';
-                    var labels = {5:'ดีเยี่ยม',4:'ดี',3:'ปานกลาง',2:'ต้องปรับปรุง',1:'ไม่ผ่าน'};
-                    for (var i=5;i>=1;i--) html += '<label class="rating-label"><input type="radio" name="q_'+q.id+'" value="'+i+'"'+(isReq?' required':'')+'> '+labels[i]+' ('+i+')</label>';
+                    var lb = {5:'ดีเยี่ยม',4:'ดี',3:'ปานกลาง',2:'ต้องปรับปรุง',1:'ไม่ผ่าน'};
+                    for (var i=5;i>=1;i--) html += '<label class="rating-label"><input type="radio" name="q_'+q.id+'" value="'+i+'"'+(isReq?' required':'')+'> '+lb[i]+' ('+i+')</label>';
                     html += '</div>';
                 } else if (q.type === 'text') {
                     html += '<input type="text" name="q_'+q.id+'" class="text-answer" placeholder="พิมพ์คำตอบ..."'+(isReq?' required':'')+'>';
@@ -1132,9 +1229,34 @@ var App = {
                 }
                 html += '</div>';
             });
-            html += '<div class="form-actions"><button type="submit" class="btn btn-primary">ส่งแบบประเมินตัวเอง</button></div></form>';
         }
-        html += '</div></div>';
+        html += '</div>';
+
+        // ส่วนที่ 3: ขาด ลา มาสาย
+        html += '<div class="eval-section-block">';
+        html += '<div class="eval-section-header"><span class="eval-section-num">3</span><h3>การขาด ลา มาสาย</h3></div>';
+        if (attendanceSubmitted) {
+            html += '<p class="empty-state">✅ คุณส่งข้อมูลการขาด/ลา/มาสายแล้ว</p>';
+        } else {
+            html += '<p class="section-desc">กรอกข้อมูลการขาด ลา มาสาย ในรอบประเมินนี้</p>';
+            html += '<div class="grade-form-row">';
+            html += '<div class="form-group"><label>จำนวนวันขาดงาน</label><input type="number" id="mgr-att-absent" min="0" value="0" class="text-answer"></div>';
+            html += '<div class="form-group"><label>จำนวนวันลา</label><input type="number" id="mgr-att-leave" min="0" value="0" class="text-answer"></div>';
+            html += '<div class="form-group"><label>จำนวนครั้งมาสาย</label><input type="number" id="mgr-att-late" min="0" value="0" class="text-answer"></div>';
+            html += '</div>';
+            html += '<div class="form-group"><label>หมายเหตุ (ถ้ามี)</label><input type="text" id="mgr-att-note" class="text-answer" placeholder="เช่น ลาป่วย 2 วัน..."></div>';
+        }
+        html += '</div>';
+
+        // Submit
+        var hasAnything = !kpiSubmitted || unanswered.length > 0 || !attendanceSubmitted;
+        if (hasAnything) {
+            html += '<div class="form-actions"><button type="submit" class="btn btn-primary">ส่งแบบประเมินตัวเอง</button></div>';
+        } else {
+            html += '<p class="empty-state">🎉 คุณส่งข้อมูลครบทุกส่วนแล้ว!</p>';
+        }
+
+        html += '</form></div></div>';
         return html;
     },
 
@@ -1149,6 +1271,28 @@ var App = {
 
     submitMgrSelfEval: function() {
         var mgrId = this.currentUser.id;
+        var kpiSubmitted = Store.evaluations.some(function(e){return e.employeeId===mgrId && e.type==='kpi';});
+        var attendanceSubmitted = Store.evaluations.some(function(e){return e.employeeId===mgrId && e.type==='attendance';});
+
+        // Part 1: KPI
+        if (!kpiSubmitted) {
+            var kpiGoals = document.getElementById('mgr-kpi-goals');
+            var kpiResults = document.getElementById('mgr-kpi-results');
+            var kpiScore = document.querySelector('input[name="mgr_kpi_score"]:checked');
+            if (!kpiGoals || !kpiGoals.value.trim()) { showToast('กรุณากรอกเป้าหมาย KPI','error'); return; }
+            if (!kpiResults || !kpiResults.value.trim()) { showToast('กรุณากรอกผลงาน KPI','error'); return; }
+            if (!kpiScore) { showToast('กรุณาให้คะแนน KPI','error'); return; }
+            Store.evaluations.push({
+                id: 'E'+Date.now()+Math.random().toString(36).substring(2,6),
+                employeeId: mgrId, type: 'kpi', questionId: 'kpi_self',
+                score: parseInt(kpiScore.value),
+                answer: 'เป้าหมาย: '+kpiGoals.value.trim()+' | ผลงาน: '+kpiResults.value.trim(),
+                status: 'reviewed', date: new Date().toISOString(),
+                evaluatedBy: mgrId, isSelfEval: true
+            });
+        }
+
+        // Part 2: Questions
         var myQuestions = Store.getQuestionsForEmployee(mgrId);
         var answeredIds = Store.evaluations.filter(function(e){return e.employeeId===mgrId;}).map(function(e){return e.questionId;});
         var unanswered = myQuestions.filter(function(q){return answeredIds.indexOf(q.id)===-1;});
@@ -1166,8 +1310,7 @@ var App = {
             if (q.type === 'rating') {
                 var sel = document.querySelector('input[name="q_'+q.id+'"]:checked');
                 if (!sel && isReq) { showToast('กรุณาตอบคำถามที่จำเป็น','error'); return; }
-                if (sel) evalEntry.score = parseInt(sel.value);
-                else evalEntry.answer = '-';
+                if (sel) evalEntry.score = parseInt(sel.value); else evalEntry.answer = '-';
             } else if (q.type === 'multiple_choice') {
                 var chosen = document.querySelector('input[name="q_'+q.id+'"]:checked');
                 if (!chosen && isReq) { showToast('กรุณาตอบคำถามที่จำเป็น','error'); return; }
@@ -1190,9 +1333,25 @@ var App = {
                 if ((!ta || !ta.value.trim()) && isReq) { showToast('กรุณาตอบคำถามที่จำเป็น','error'); return; }
                 evalEntry.answer = ta ? ta.value.trim() : '-';
             }
-
             Store.evaluations.push(evalEntry);
         }
+
+        // Part 3: Attendance
+        if (!attendanceSubmitted) {
+            var absent = document.getElementById('mgr-att-absent') ? parseInt(document.getElementById('mgr-att-absent').value)||0 : 0;
+            var leave = document.getElementById('mgr-att-leave') ? parseInt(document.getElementById('mgr-att-leave').value)||0 : 0;
+            var late = document.getElementById('mgr-att-late') ? parseInt(document.getElementById('mgr-att-late').value)||0 : 0;
+            var note = document.getElementById('mgr-att-note') ? document.getElementById('mgr-att-note').value.trim() : '';
+            Store.evaluations.push({
+                id: 'E'+Date.now()+Math.random().toString(36).substring(2,6),
+                employeeId: mgrId, type: 'attendance', questionId: 'attendance',
+                answer: 'ขาด: '+absent+' วัน, ลา: '+leave+' วัน, มาสาย: '+late+' ครั้ง'+(note?' ('+note+')':''),
+                absent: absent, leave: leave, late: late, note: note,
+                status: 'reviewed', date: new Date().toISOString(),
+                evaluatedBy: mgrId, isSelfEval: true
+            });
+        }
+
         Store.save();
         showToast('ส่งแบบประเมินตัวเองสำเร็จ! ส่งให้ MD อนุมัติแล้ว','success');
         this.render('mgr-self-eval'); this.bindMgrSelfEval();

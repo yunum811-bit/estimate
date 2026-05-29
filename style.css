@@ -1203,6 +1203,21 @@ body {
     border-left: 4px solid #3f51b5;
 }
 
+.eval-section-block:nth-child(1) {
+    border-left-color: #1565c0;
+    background: linear-gradient(135deg, #e3f2fd 0%, #fff 30%);
+}
+
+.eval-section-block:nth-child(2) {
+    border-left-color: #7b1fa2;
+    background: linear-gradient(135deg, #f3e5f5 0%, #fff 30%);
+}
+
+.eval-section-block:nth-child(3) {
+    border-left-color: #e65100;
+    background: linear-gradient(135deg, #fff3e0 0%, #fff 30%);
+}
+
 .eval-section-header {
     display: flex;
     align-items: center;
@@ -1212,9 +1227,19 @@ body {
     border-bottom: 2px solid #e8eaf6;
 }
 
+.eval-section-block:nth-child(1) .eval-section-header {
+    border-bottom-color: #bbdefb;
+}
+
+.eval-section-block:nth-child(2) .eval-section-header {
+    border-bottom-color: #e1bee7;
+}
+
+.eval-section-block:nth-child(3) .eval-section-header {
+    border-bottom-color: #ffe0b2;
+}
+
 .eval-section-num {
-    background: #3f51b5;
-    color: #fff;
     width: 32px;
     height: 32px;
     border-radius: 50%;
@@ -1224,10 +1249,84 @@ body {
     font-weight: 700;
     font-size: 1rem;
     flex-shrink: 0;
+    color: #fff;
+    background: #3f51b5;
+}
+
+.eval-section-block:nth-child(1) .eval-section-num {
+    background: #1565c0;
+}
+
+.eval-section-block:nth-child(2) .eval-section-num {
+    background: #7b1fa2;
+}
+
+.eval-section-block:nth-child(3) .eval-section-num {
+    background: #e65100;
 }
 
 .eval-section-header h3 {
     color: #1a237e;
     margin: 0;
     font-size: 1.15rem;
+}
+
+.eval-section-block:nth-child(1) .eval-section-header h3 {
+    color: #1565c0;
+}
+
+.eval-section-block:nth-child(2) .eval-section-header h3 {
+    color: #7b1fa2;
+}
+
+.eval-section-block:nth-child(3) .eval-section-header h3 {
+    color: #e65100;
+}
+
+/* Section Weights */
+.weights-display {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.weight-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    border-radius: 10px;
+    border: 2px solid #e0e0e0;
+}
+
+.weight-card.weight-kpi {
+    border-color: #1565c0;
+    background: #e3f2fd;
+}
+
+.weight-card.weight-questions {
+    border-color: #7b1fa2;
+    background: #f3e5f5;
+}
+
+.weight-card.weight-attendance {
+    border-color: #e65100;
+    background: #fff3e0;
+}
+
+.weight-icon {
+    font-size: 2rem;
+}
+
+.weight-info h4 {
+    font-size: 0.85rem;
+    color: #555;
+    margin-bottom: 0.25rem;
+}
+
+.weight-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1a237e;
 }

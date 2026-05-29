@@ -347,5 +347,6 @@
       "max": 1.49,
       "color": "#e53935"
     }
-  ]
+  ],
+  "sectionWeights": { "kpi": 40, "questions": 40, "attendance": 20 }
 }
