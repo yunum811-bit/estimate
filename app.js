@@ -1345,7 +1345,10 @@ var App = {
             html += '<p class="section-desc">กรอกข้อมูลการขาด ลา มาสาย ในรอบประเมินนี้</p>';
             html += '<div class="grade-form-row">';
             html += '<div class="form-group"><label>จำนวนวันขาดงาน</label><input type="number" id="mgr-att-absent" min="0" value="0" class="text-answer"></div>';
-            html += '<div class="form-group"><label>จำนวนวันลา</label><input type="number" id="mgr-att-leave" min="0" value="0" class="text-answer"></div>';
+            html += '<div class="form-group"><label>จำนวนวันลากิจ</label><input type="number" id="mgr-att-leave-personal" min="0" value="0" class="text-answer"></div>';
+            html += '<div class="form-group"><label>จำนวนวันลาป่วย</label><input type="number" id="mgr-att-leave-sick" min="0" value="0" class="text-answer"></div>';
+            html += '</div><div class="grade-form-row">';
+            html += '<div class="form-group"><label>จำนวนวันลาพักร้อน</label><input type="number" id="mgr-att-leave-vacation" min="0" value="0" class="text-answer"></div>';
             html += '<div class="form-group"><label>จำนวนครั้งมาสาย</label><input type="number" id="mgr-att-late" min="0" value="0" class="text-answer"></div>';
             html += '</div>';
             html += '<div class="form-group"><label>หมายเหตุ (ถ้ามี)</label><input type="text" id="mgr-att-note" class="text-answer" placeholder="เช่น ลาป่วย 2 วัน..."></div>';
@@ -1443,14 +1446,16 @@ var App = {
         // Part 3: Attendance
         if (!attendanceSubmitted) {
             var absent = document.getElementById('mgr-att-absent') ? parseInt(document.getElementById('mgr-att-absent').value)||0 : 0;
-            var leave = document.getElementById('mgr-att-leave') ? parseInt(document.getElementById('mgr-att-leave').value)||0 : 0;
+            var leavePersonal = document.getElementById('mgr-att-leave-personal') ? parseInt(document.getElementById('mgr-att-leave-personal').value)||0 : 0;
+            var leaveSick = document.getElementById('mgr-att-leave-sick') ? parseInt(document.getElementById('mgr-att-leave-sick').value)||0 : 0;
+            var leaveVacation = document.getElementById('mgr-att-leave-vacation') ? parseInt(document.getElementById('mgr-att-leave-vacation').value)||0 : 0;
             var late = document.getElementById('mgr-att-late') ? parseInt(document.getElementById('mgr-att-late').value)||0 : 0;
             var note = document.getElementById('mgr-att-note') ? document.getElementById('mgr-att-note').value.trim() : '';
             Store.evaluations.push({
                 id: 'E'+Date.now()+Math.random().toString(36).substring(2,6),
                 employeeId: mgrId, type: 'attendance', questionId: 'attendance',
-                answer: 'ขาด: '+absent+' วัน, ลา: '+leave+' วัน, มาสาย: '+late+' ครั้ง'+(note?' ('+note+')':''),
-                absent: absent, leave: leave, late: late, note: note,
+                answer: 'ขาด: '+absent+' วัน, ลากิจ: '+leavePersonal+' วัน, ลาป่วย: '+leaveSick+' วัน, ลาพักร้อน: '+leaveVacation+' วัน, มาสาย: '+late+' ครั้ง'+(note?' ('+note+')':''),
+                absent: absent, leavePersonal: leavePersonal, leaveSick: leaveSick, leaveVacation: leaveVacation, late: late, note: note,
                 status: 'reviewed', date: new Date().toISOString(),
                 evaluatedBy: mgrId, isSelfEval: true
             });
@@ -1815,7 +1820,10 @@ var App = {
             html += '<p class="section-desc">กรอกข้อมูลการขาด ลา มาสาย ในรอบประเมินนี้</p>';
             html += '<div class="grade-form-row">';
             html += '<div class="form-group"><label>จำนวนวันขาดงาน</label><input type="number" id="att-absent" min="0" value="0" class="text-answer"></div>';
-            html += '<div class="form-group"><label>จำนวนวันลา</label><input type="number" id="att-leave" min="0" value="0" class="text-answer"></div>';
+            html += '<div class="form-group"><label>จำนวนวันลากิจ</label><input type="number" id="att-leave-personal" min="0" value="0" class="text-answer"></div>';
+            html += '<div class="form-group"><label>จำนวนวันลาป่วย</label><input type="number" id="att-leave-sick" min="0" value="0" class="text-answer"></div>';
+            html += '</div><div class="grade-form-row">';
+            html += '<div class="form-group"><label>จำนวนวันลาพักร้อน</label><input type="number" id="att-leave-vacation" min="0" value="0" class="text-answer"></div>';
             html += '<div class="form-group"><label>จำนวนครั้งมาสาย</label><input type="number" id="att-late" min="0" value="0" class="text-answer"></div>';
             html += '</div>';
             html += '<div class="form-group"><label>หมายเหตุ (ถ้ามี)</label><input type="text" id="att-note" class="text-answer" placeholder="เช่น ลาป่วย 2 วัน, ลากิจ 1 วัน..."></div>';
@@ -1913,14 +1921,16 @@ var App = {
         // Part 3: Attendance
         if (!attendanceSubmitted) {
             var absent = document.getElementById('att-absent') ? parseInt(document.getElementById('att-absent').value)||0 : 0;
-            var leave = document.getElementById('att-leave') ? parseInt(document.getElementById('att-leave').value)||0 : 0;
+            var leavePersonal = document.getElementById('att-leave-personal') ? parseInt(document.getElementById('att-leave-personal').value)||0 : 0;
+            var leaveSick = document.getElementById('att-leave-sick') ? parseInt(document.getElementById('att-leave-sick').value)||0 : 0;
+            var leaveVacation = document.getElementById('att-leave-vacation') ? parseInt(document.getElementById('att-leave-vacation').value)||0 : 0;
             var late = document.getElementById('att-late') ? parseInt(document.getElementById('att-late').value)||0 : 0;
             var note = document.getElementById('att-note') ? document.getElementById('att-note').value.trim() : '';
             Store.evaluations.push({
                 id: 'E'+Date.now()+Math.random().toString(36).substring(2,6),
                 employeeId: empId, type: 'attendance', questionId: 'attendance',
-                answer: 'ขาด: '+absent+' วัน, ลา: '+leave+' วัน, มาสาย: '+late+' ครั้ง'+(note?' ('+note+')':''),
-                absent: absent, leave: leave, late: late, note: note,
+                answer: 'ขาด: '+absent+' วัน, ลากิจ: '+leavePersonal+' วัน, ลาป่วย: '+leaveSick+' วัน, ลาพักร้อน: '+leaveVacation+' วัน, มาสาย: '+late+' ครั้ง'+(note?' ('+note+')':''),
+                absent: absent, leavePersonal: leavePersonal, leaveSick: leaveSick, leaveVacation: leaveVacation, late: late, note: note,
                 status: 'submitted', date: new Date().toISOString()
             });
         }
